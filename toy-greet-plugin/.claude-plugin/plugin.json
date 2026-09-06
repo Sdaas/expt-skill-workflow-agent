@@ -1,0 +1,10 @@
+{
+  "name": "toy-greet",
+  "version": "0.1.0",
+  "description": "Toy 2-gate greeting workflow — a learning scaffold for plugin/command mechanics.",
+  "author": {
+    "name": "Soumendra Daas",
+    "email": "soumendra.daas@gmail.com"
+  },
+  "keywords": ["tutorial", "workflow", "toy"]
+}
