@@ -23,16 +23,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 13 ✅ (2026-09-07) — fleshed **Gate 3 WRITE-TESTS** (namespaced
-  spawn of the algorithm-blind `test-writer`, red-for-the-right-reason exit) **+ a major isolation
-  deviation**: empirically validated that we can launch subagents with pinned model/tools and confine
-  reads, and **built a plugin PreToolUse guard hook** (`hooks/hooks.json` → `hooks/scripts/guard.py`)
-  that audits every read, denies secrets/`.env` for all agents, and denies `design-internal.md` for the
-  test-writer only. Wrote `design/isolation-experiments.md` and a root report `LAUNCHING-SUBAGENTS.md`.
-  Fixed the namespacing bug (`implement-feature:<agent>`). Updated PLAN/TUTORIAL/PATTERNS.
-- **Next chunk to deliver:** Chunk 14 (Part D) — flesh **Gate 4 TEST-REVIEW**: a fresh isolated
-  reviewer critiques the tests before implement, with the bounded loop back to the writer.
-- **Awaiting from user:** authorized to continue to Chunk 14 after committing Chunk 13.
+- **Last completed chunk:** Chunk 14 ✅ (2026-09-07) — fleshed **Gate 4 TEST-REVIEW**: an independent
+  read-only critic (`implement-feature:test-reviewer`, Opus/high) reviews the tests BEFORE implement —
+  intent-match, non-tautology (mutation-minded), coverage, no impl leakage — over an asymmetric inbox
+  (full design incl. internal, unlike the blind writer). Verdict → bounded writer↔reviewer loop
+  (stop after 2 no-progress rounds → human). Outbox `test-review-findings.md`.
+- **Next chunk to deliver:** Chunk 15 (Part D) — flesh **Gate 5 IMPLEMENT**: the isolated implementer,
+  inner loop to green (pytest + ruff + mypy).
+- **Awaiting from user:** delivering Chunk 15 now (user said "next").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -56,6 +54,9 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 14 ✅ (build): fleshed Gate 4 TEST-REVIEW in `SKILL.md` — independent, read-only,
+  higher-model critic; runs before implement; asymmetric inbox (sees full design); bounded loop back to
+  the writer. Added P32 (asymmetric inboxes). Committed.
 - 2026-09-07 — Chunk 13 ✅ (build + deviation): fleshed Gate 3 WRITE-TESTS; then ran an isolation
   investigation (user-driven, important). Stage 0 facts via `claude-code-guide`; Stage 1 local probes
   (proved model routing + tool hard-block + transcript read-audit; built `scratchpad/parse_transcript.py`);

@@ -32,6 +32,7 @@
 - Q&A — Why thresholds live in the test plan, and why record alternatives
 - Chunk 13 — Gate 3: WRITE-TESTS + validating & enforcing subagent isolation
 - Q&A — How is subagent isolation actually enforced (the guard hook)?
+- Chunk 14 — Gate 4: TEST-REVIEW (the independent critic)
 
 ---
 
@@ -581,3 +582,25 @@ A hook `deny` decision + exit code 2 **hard-blocks** the call. This is **defense
 agent's own role instruction (P29): in testing, the test-writer refused on its own before the hook even
 fired. Model/token figures still come from the transcript (best-effort). Key lesson (T21): the docs were
 wrong on agent naming and unsure on headless hooks — we **verified empirically** before depending on it.
+
+---
+
+## Chunk 14 — Gate 4: TEST-REVIEW (the independent critic)
+
+The A/B's standout win: after WRITE-TESTS and **before** IMPLEMENT, a fresh subagent
+(`implement-feature:test-reviewer`, Opus/high, read-only) reviews the tests. Running it *before* code
+exists keeps the intent-check pure — there's no implementation to rationalize the tests against.
+
+It judges: **intent-match** (does each test assert the requirement or a proxy?), **non-tautology**
+(*would a wrong implementation still pass?* — mutation-minded), **coverage** (every AC + boundary), and
+**no implementation leakage**. Three properties make it real:
+- **Different agent** than the writer → fresh context, no shared blind spots (independence).
+- **Read-only** (`disallowedTools: Write, Edit`) → it can only *report*, never silently "fix" a weak
+  test and hide the problem.
+- **Asymmetric inbox** (P32): the reviewer sees the **full** design (incl. `design-internal.md`) that
+  the writer was blind to — so it can catch tautologies the blind writer couldn't. Enforced per-agent
+  by the guard hook.
+
+Verdict → **bounded loop**: `APPROVE` proceeds; `CHANGES-REQUESTED` re-spawns the writer with the
+findings, then re-reviews — bounded to N no-progress rounds before surfacing to a human (T11), so a
+finding the writer can't resolve doesn't spin forever.

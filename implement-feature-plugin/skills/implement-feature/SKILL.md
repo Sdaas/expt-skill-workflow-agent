@@ -194,10 +194,32 @@ re-spawn with the correction. When genuinely red, append the run-log entry and p
 *(This gate is re-entered from Gate 4 on CHANGES-REQUESTED — re-spawn the writer with the
 findings file added to its inbox.)*
 
-## Gate 4 — TEST-REVIEW  [I] `test-reviewer`   *(fleshed in Chunk 14)*
-Fresh reviewer checks the tests encode the ACs, are non-tautological, cover the
-boundary inventory + mutation cases. **APPROVE →** proceed; **CHANGES-REQUESTED →**
-re-spawn `test-writer` with findings (bounded: stop after 2 no-progress rounds).
+## Gate 4 — TEST-REVIEW  [I] `test-reviewer`
+
+An **independent** critic reviews the tests **before** any implementation exists. Spawn a
+**different** agent than the writer — `subagent_type: implement-feature:test-reviewer`
+(Opus/high per the model plan; read-only, pinned in `agents/test-reviewer.md`).
+
+**Its inbox (it sees more than the writer):** `requirements.md`, the **full** design
+(`design-interface.md` **and** `design-internal.md`), `test-plan.md`, the tests, and
+`test-intent.md`. (Only the *writer* is algorithm-blind; the reviewer is not.)
+
+**It must judge:**
+- **Intent match** — does each test assert the requirement, or only a proxy?
+- **Non-tautology** — *would a wrong implementation still pass?* Do a mutation-minded
+  analysis: name plausible bugs and confirm a test kills each.
+- **Coverage** — every acceptance criterion and every boundary in the inventory, per the
+  test plan (incl. the mutation cases behind the kill-rate target).
+- **No implementation leakage** — tests encode the contract, not one algorithm.
+
+It writes `<workdir>/handoff/test-review-findings.md` with a **verdict**:
+- **CHANGES-REQUESTED → bounded loop:** re-spawn `implement-feature:test-writer` with the
+  findings file added to its inbox; then re-review. **Bound it:** after 2 rounds with no
+  progress, STOP and surface to the human.
+- **APPROVE →** append the run-log entry and proceed.
+
+The reviewer does **not** edit the tests (read-only) — it only reports; the writer makes
+the changes on the next loop.
 
 ## Gate 5 — IMPLEMENT  [I] `implementer`  (inner loop)   *(fleshed in Chunk 15)*
 Minimum code to pass. **"Green" = `pytest` passes AND `ruff` clean AND `mypy` clean**

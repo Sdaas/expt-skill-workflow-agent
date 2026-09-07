@@ -209,4 +209,14 @@
   plugin agents (wrong — namespaced) and were unsure about headless hooks (project=no, plugin=yes).
   Confirm model, tool blocks, hook firing, and naming empirically before depending on them.
 
+---
+
+## Review gates (Chunk 14)
+- ✅ **P32 — Asymmetric inboxes: blind the producer, inform the critic.** The producer that must stay
+  unbiased (test-writer) gets a *restricted* inbox; the critic that judges it (test-reviewer) gets the
+  *full* context (incl. `design-internal.md`) so it can catch what the producer couldn't. Same
+  file-handoff machinery, opposite information policy — enforced per-agent by the guard hook (P31).
+  A review gate also runs BEFORE the thing it protects (test-review before implement, P16) and its
+  critic is a different, read-only, higher-model agent (P13/T14/P17), looped but bounded (T11).
+
 <!-- New patterns appended below as chunks reveal them. -->
