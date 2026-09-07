@@ -238,4 +238,14 @@
   tests are not Done" (T10) is the reason the outer loop exists; independence (P13) is why a different
   agent runs it.
 
+---
+
+## Code review (Chunk 17)
+- ✅ **P35 — Mutation kill-rate retroactively grades test quality.** A surviving mutant is a
+  deliberately-injected bug no test caught → a weak/tautological test. Running mutation at CODE-REVIEW
+  turns "are the tests any good?" into a machine-checkable number that retroactively grades the
+  test-writer (Gate 3) and the test-reviewer (Gate 4) — the objective backstop behind the earlier
+  human/agent judgement. Whole-diff review by one fresh, stronger, read-only agent (P13/P17/T14) is the
+  last unattended gate before the human.
+
 <!-- New patterns appended below as chunks reveal them. -->

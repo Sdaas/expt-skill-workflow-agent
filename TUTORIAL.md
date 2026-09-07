@@ -35,6 +35,7 @@
 - Chunk 14 — Gate 4: TEST-REVIEW (the independent critic)
 - Chunk 15 — Gate 5: IMPLEMENT (inner loop to green) + test-integrity hook
 - Chunk 16 — Gate 6: VERIFY (outer loop — observe the real thing)
+- Chunk 17 — Gate 7: CODE-REVIEW + the slow checks (last unattended gate)
 
 ---
 
@@ -649,3 +650,22 @@ are wrong, mocked tests pass while reality fails* (T10). It writes `verify-repor
 to IMPLEMENT. Two ideas converge here: "green tests are not Done" (the outer loop exists) and
 independence (a different agent runs it, dodging the author's confirmation bias — the same reason
 TEST-REVIEW is a separate agent).
+
+---
+
+## Chunk 17 — Gate 7: CODE-REVIEW + the slow checks (last unattended gate)
+
+A fresh, read-only `implement-feature:code-reviewer` (**Opus/high**) reviews the **whole diff** — "one
+senior engineer on the entire PR": fresh context kills anchoring, a stronger-than-implementer model
+kills monoculture. Two jobs:
+1. **Judgement** — correctness/error-handling, Python best practices, constraints honored, whole-diff
+   consistency, and flag any change under `tests/` (the implementer must not have touched them).
+2. **Slow checks** (deferred here by split-by-speed, P23): **coverage** (`pytest-cov`) and **mutation**
+   (`mutmut`) vs the test-plan thresholds. A **surviving mutant** is a deliberately-injected bug no test
+   caught → a weak test; so mutation retroactively **grades the test-writer (Gate 3) and test-reviewer
+   (Gate 4)** as a machine-checkable number (P35).
+
+Verdict → bounded loop: `CHANGES-REQUESTED` back to IMPLEMENT; `APPROVE` hands to the human gates. This
+is the **last unattended gate** — gates 0–7 ran with the human involved only at 0–2; the automation
+bought independent, rigorous, isolated production at machine speed, and the human still owns the final
+decision to ship (gates 8–10).

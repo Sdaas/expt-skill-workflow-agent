@@ -270,11 +270,32 @@ actual value, the boundary drives performed, and an overall verdict.
 inner loop, fix, re-green, then re-VERIFY (bounded; surface to the human if it won't
 converge). On all-PASS → append the run-log entry and proceed to CODE-REVIEW.
 
-## Gate 7 — CODE-REVIEW + quality  [I] `code-reviewer`   *(fleshed in Chunk 17)*
-Whole-diff review + the **slow checks**: **coverage** (`pytest-cov`) and **mutation
-kill rate** (`mutmut`) vs the thresholds in the test plan; for concurrent features, a
-concurrency-focused review item. **CHANGES-REQUESTED →** back to IMPLEMENT (bounded).
-**APPROVE →** proceed.
+## Gate 7 — CODE-REVIEW + quality  [I] `code-reviewer`  (the last unattended gate)
+
+Spawn a fresh, read-only whole-diff reviewer —
+`subagent_type: implement-feature:code-reviewer` (Opus/high; pinned in
+`agents/code-reviewer.md`). "One senior engineer reviewing the entire PR": fresh context
+kills anchoring, a stronger model than the implementer kills monoculture. Its inbox:
+`requirements.md` + the full design + the **whole change** (tests + `src/`) + the standards.
+
+**It does two jobs:**
+1. **Judgement review** — correctness & error handling; Python best practices
+   (modularity/cohesion, purity/side-effects, naming, typing, docstrings); the constraints
+   in `requirements.md` honored; whole-diff consistency (no dead/speculative code); and flag
+   **any change under `tests/`** (the implementer must not have altered them).
+2. **The slow checks** (deferred here by split-by-speed):
+   - **Coverage** — `pytest --cov=src` vs the test-plan threshold; call out untested lines.
+   - **Mutation** — `mutmut run` → kill-rate vs the test-plan threshold; **surviving mutants
+     are weak tests** and block APPROVE.
+   - Concurrency-focused item if `requirements.md` flagged it.
+
+It writes `<workdir>/handoff/code-review-findings.md` with a **verdict**:
+- **CHANGES-REQUESTED → back to IMPLEMENT** (fix → re-green → re-VERIFY → re-review).
+  Bounded; surface to the human if it won't converge.
+- **APPROVE →** append the run-log entry and proceed to the human gates (8–10).
+
+The fast checks (`ruff`/`mypy`/unit `pytest`) were already gated in IMPLEMENT — confirm they
+still pass, but spend the effort on judgement + the slow checks.
 
 ## Gate 8 — REVIEW-GUIDE  [C]   *(fleshed in Chunk 18)*
 Present changed files, a recommended review order, one line per file, + pointers to

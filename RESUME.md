@@ -23,13 +23,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 16 ✅ (2026-09-07) — fleshed **Gate 6 VERIFY**: a fresh read-only
-  `implement-feature:verifier` (Sonnet/high) drives the REAL feature on each AC (observed PASS/FAIL,
-  not just green tests) and exercises every boundary **un-mocked**; concurrency stress if flagged. It's
-  the **outer loop** — a FAIL sends the conductor back to IMPLEMENT. Outbox `verify-report.md`.
-- **Next chunk to deliver:** Chunk 17 (Part D) — flesh **Gate 7 CODE-REVIEW**: whole-diff isolated
-  reviewer + the slow checks (coverage via pytest-cov, mutation kill-rate via mutmut); bounded loop.
-- **Awaiting from user:** delivering Chunk 17 now (user said "next").
+- **Last completed chunk:** Chunk 17 ✅ (2026-09-07) — fleshed **Gate 7 CODE-REVIEW** (the last
+  unattended gate): fresh read-only whole-diff reviewer (`implement-feature:code-reviewer`, Opus/high)
+  does judgement review + the slow checks (coverage via pytest-cov, mutation kill-rate via mutmut vs
+  test-plan thresholds; surviving mutants block APPROVE) + flags any `tests/` change. Bounded loop back
+  to IMPLEMENT; APPROVE → human gates. Outbox `code-review-findings.md`.
+- **Next chunk to deliver:** Chunk 18 (Part D) — flesh **Gates 8–10**: REVIEW-GUIDE → HUMAN REVIEW →
+  COMMIT (the human hand-back and finish).
+- **Awaiting from user:** delivering Chunk 18 now (user said "continue").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -53,6 +54,9 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 17 ✅ (build): fleshed Gate 7 CODE-REVIEW in `SKILL.md` — whole-diff Opus reviewer,
+  judgement review + slow checks (pytest-cov coverage, mutmut mutation vs thresholds), flags tests/
+  changes, bounded loop to IMPLEMENT. Added P35 (mutation retroactively grades test quality). Committed.
 - 2026-09-07 — Chunk 16 ✅ (build): fleshed Gate 6 VERIFY in `SKILL.md` — fresh read-only verifier,
   drive real feature per-AC + un-mocked boundaries; outer loop back to IMPLEMENT on defect. Added P34
   (nested inner/outer loop). Committed.
