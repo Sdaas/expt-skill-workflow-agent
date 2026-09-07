@@ -297,16 +297,34 @@ It writes `<workdir>/handoff/code-review-findings.md` with a **verdict**:
 The fast checks (`ruff`/`mypy`/unit `pytest`) were already gated in IMPLEMENT — confirm they
 still pass, but spend the effort on judgement + the slow checks.
 
-## Gate 8 — REVIEW-GUIDE  [C]   *(fleshed in Chunk 18)*
-Present changed files, a recommended review order, one line per file, + pointers to
-each findings file.
+## Gate 8 — REVIEW-GUIDE  [C]  (Sonnet/Haiku)
 
-## Gate 9 — HUMAN REVIEW  [C] ↔ human   *(fleshed in Chunk 18)*
-**STOP. Wait for the human to review and reply APPROVED.** Address changes; re-present.
+Make the human's review fast and focused — **guide the eye; do not dump a diff.** Present:
+- the list of **changed files**, with a recommended **review order**;
+- **one line per file** — why it matters / where the key change is;
+- **pointers to every findings file**: `handoff/test-review-findings.md`,
+  `handoff/verify-report.md`, `handoff/code-review-findings.md`, and the audit
+  `handoff/run-log.jsonl` (what each agent did, which model, what it read).
 
-## Gate 10 — COMMIT  [C]   *(fleshed in Chunk 18)*
-After approval: commit with a clear message. (Authorship: Soumendra Daas /
-soumendra.daas@gmail.com.)
+The observability from every gate pays off here: the human can drill into any agent's work
+rather than re-reviewing everything from scratch.
+
+## Gate 9 — HUMAN REVIEW  [C] ↔ human   (approval gate — the ship decision)
+
+**STOP. Do not commit. Wait for the human to review and reply APPROVED.** If the human
+requests changes, route them to the relevant gate (e.g. a logic fix → IMPLEMENT; a missing
+test → back through WRITE-TESTS/TEST-REVIEW), then re-run forward and re-present at Gate 8.
+The human owns the decision to ship — nothing here is automatic.
+
+## Gate 10 — COMMIT  [C]  (Sonnet/Haiku)
+
+**Only after the human replied APPROVED** (the hard rule from Gate 0): commit the change
+with a clear message referencing the feature and its acceptance criteria. Authorship is
+**Soumendra Daas / soumendra.daas@gmail.com**. This is the **only** gate that writes to git
+history. (In a repo with branch/PR conventions: commit on the feature branch, push — the
+pre-push hook runs the tests — and open a PR; merge only on green CI + approval.)
+
+Append the final run-log entry. The pipeline (Gates 0–10) is complete.
 
 ---
 

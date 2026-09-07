@@ -23,14 +23,18 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 17 ✅ (2026-09-07) — fleshed **Gate 7 CODE-REVIEW** (the last
-  unattended gate): fresh read-only whole-diff reviewer (`implement-feature:code-reviewer`, Opus/high)
-  does judgement review + the slow checks (coverage via pytest-cov, mutation kill-rate via mutmut vs
-  test-plan thresholds; surviving mutants block APPROVE) + flags any `tests/` change. Bounded loop back
-  to IMPLEMENT; APPROVE → human gates. Outbox `code-review-findings.md`.
-- **Next chunk to deliver:** Chunk 18 (Part D) — flesh **Gates 8–10**: REVIEW-GUIDE → HUMAN REVIEW →
-  COMMIT (the human hand-back and finish).
-- **Awaiting from user:** delivering Chunk 18 now (user said "continue").
+- **Last completed chunk:** Chunk 18 ✅ (2026-09-07) — fleshed **Gates 8–10** (REVIEW-GUIDE → HUMAN
+  REVIEW → COMMIT), all conductor-run. **The 11-gate conductor score (Gates 0–10) is now COMPLETE** in
+  `SKILL.md` — no stubs left. Gate 8 guides the human's eye (changed files + review order + pointers to
+  all findings files + run-log); Gate 9 STOP-until-APPROVED owns the ship decision; Gate 10 commits
+  (the only git-writing gate, only after APPROVED).
+- **Next chunk to deliver:** Chunk 19 (Part D) — the **observability analyzer**: promote the
+  transcript/run-log parser into the plugin (the "what did this workflow actually do" report — reads +
+  model/tokens per gate + isolation-compliance). Prototype exists at `scratchpad/parse_transcript.py`
+  (host scratchpad — NOT in the repo; will be rebuilt in the plugin).
+- **Awaiting from user:** ⏸️ **SESSION PAUSED 2026-09-07** — user stopping for ~a day. Resume with
+  "read RESUME.md and continue", then deliver Chunk 19. (Chunk 18 comprehension check was not answered;
+  optional to revisit.)
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -54,6 +58,9 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 18 ✅ (build): fleshed Gates 8–10 (REVIEW-GUIDE → HUMAN REVIEW → COMMIT). The
+  11-gate conductor score is COMPLETE (no stubs). Added P36 (human gate owns the ship decision; cheap
+  models for mechanical gates). Committed + pushed; container/image torn down (login volume kept).
 - 2026-09-07 — Chunk 17 ✅ (build): fleshed Gate 7 CODE-REVIEW in `SKILL.md` — whole-diff Opus reviewer,
   judgement review + slow checks (pytest-cov coverage, mutmut mutation vs thresholds), flags tests/
   changes, bounded loop to IMPLEMENT. Added P35 (mutation retroactively grades test quality). Committed.

@@ -248,4 +248,14 @@
   human/agent judgement. Whole-diff review by one fresh, stronger, read-only agent (P13/P17/T14) is the
   last unattended gate before the human.
 
+---
+
+## Human hand-back (Chunk 18)
+- ✅ **P36 — Bookend with human gates; keep the machine gates in the middle.** The human owns the
+  *ship decision* (a machine can't be accountable), so a final STOP-until-APPROVED gate precedes the
+  only git-writing step (review-before-commit is a hard rule, not a default — P7/T3). Make that review
+  cheap for the human: a REVIEW-GUIDE gate that orders the changed files and points at every findings
+  file + the run-log (the observability payoff). Mechanical gates (guide, commit) run on cheap models
+  (Sonnet/Haiku); reserve the strong models for judgement (design/reviews).
+
 <!-- New patterns appended below as chunks reveal them. -->

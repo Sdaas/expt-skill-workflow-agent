@@ -36,6 +36,7 @@
 - Chunk 15 — Gate 5: IMPLEMENT (inner loop to green) + test-integrity hook
 - Chunk 16 — Gate 6: VERIFY (outer loop — observe the real thing)
 - Chunk 17 — Gate 7: CODE-REVIEW + the slow checks (last unattended gate)
+- Chunk 18 — Gates 8–10: REVIEW-GUIDE → HUMAN REVIEW → COMMIT (human hand-back)
 
 ---
 
@@ -669,3 +670,22 @@ Verdict → bounded loop: `CHANGES-REQUESTED` back to IMPLEMENT; `APPROVE` hands
 is the **last unattended gate** — gates 0–7 ran with the human involved only at 0–2; the automation
 bought independent, rigorous, isolated production at machine speed, and the human still owns the final
 decision to ship (gates 8–10).
+
+---
+
+## Chunk 18 — Gates 8–10: REVIEW-GUIDE → HUMAN REVIEW → COMMIT (human hand-back)
+
+Three conductor-run gates close the pipeline:
+- **Gate 8 REVIEW-GUIDE** (Sonnet/Haiku) — *guide the eye, don't dump a diff*: changed files + a review
+  order + one line per file + pointers to every findings file (`test-review-findings.md`,
+  `verify-report.md`, `code-review-findings.md`) and the `run-log.jsonl`. The observability from every
+  gate pays off here — the human drills in instead of re-reviewing from scratch.
+- **Gate 9 HUMAN REVIEW** — **STOP-until-APPROVED**; the human owns the ship decision (a machine can't
+  be accountable). Requested changes route back to the relevant gate, then re-present.
+- **Gate 10 COMMIT** (Sonnet/Haiku) — only after `APPROVED`; the **only** git-writing gate.
+  Review-before-commit is a hard rule, not a default (P36).
+
+**The 11-gate conductor score (0–10) is now complete** — `/implement-feature` reads end-to-end as a
+driverless workflow: human gates bookend (0–2, 9), isolated model-pinned subagents do the
+bias-sensitive middle (3–7), and the guard hook enforces isolation throughout. Cheap models do the
+mechanical gates; strong models do judgement.
