@@ -38,8 +38,8 @@ Driven by **skills + subagents + workflow patterns** — no hand-written orchest
    named volume `expt-skill-workflow-claude`. Host `~/.claude` is never touched. `test-toy-greet-plugin/`
    is the in-container scratch project. Reused to test the real product later. Teaches: dev containers,
    the `devcontainer` CLI + VS Code ⇧⌘P workflow, and runtime isolation. (See `DEVCONTAINER.md`.)
-8. Inside the container: add `marketplace.json`, `/plugin marketplace add` + `/plugin install`, run
-   `/greet` end-to-end, watch the gates fire. Teardown notes.
+8. ✅ DONE — Inside the container: `marketplace.json` verified; `/plugin marketplace add` +
+   `claude plugin install`; ran `/toy-greet:greet` end-to-end, both gates fired. (Live-edit demo deferred.)
 
 ### Part C — Design the real product
 9. Decompose `/implement-feature` into phases + gates; decide inline vs subagent per phase.

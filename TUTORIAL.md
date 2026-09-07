@@ -17,6 +17,9 @@
 - Decision — Dev-container test sandbox
 - Chunk 7 — Building the sandbox (devcontainer CLI + features)
 - Q&A — `devcontainer up` vs plain `docker run`
+- Chunk 8 — Install & run the toy (marketplace → install → gates)
+- Q&A — `marketplace add` vs `install`
+- Correction — plugin commands are namespaced (`/plugin:command`)
 
 ---
 
@@ -267,3 +270,45 @@ Our setup (Option A, modeled on `~/dev/hello-dev-container`):
 
 **Takeaway:** for anyone already using the devcontainer CLI, `devcontainer up` + features is the
 idiomatic, reproducible, VS-Code-compatible choice. We dropped `run.sh`.
+
+---
+
+## Chunk 8 — Install & run the toy (marketplace → install → gates)
+
+We ran the toy end-to-end **inside the container** and watched the two gates fire — proving the
+driverless-workflow pattern with real Claude Code.
+
+The flow that worked:
+1. `devcontainer up --workspace-folder .` — build + start (features installed Claude Code 2.1.260).
+2. `devcontainer exec --workspace-folder . claude` — interactive login (persisted in the volume).
+3. `/plugin marketplace add /workspaces/expt-skill-wotkflow-agent` — registered `toy-local-marketplace`.
+4. `claude plugin install toy-greet@toy-local-marketplace` (CLI) → `/reload-plugins`.
+5. `/toy-greet:greet` — Phase 1 collect → GATE 1 confirm → Phase 2 draft → GATE 2 approve. ✅
+
+**Lessons learned (real ones from this run):**
+- Typing `/plugin install X@Y` as a one-liner in the session can just **open the manager UI and
+  no-op** (no confirmation printed). The **CLI** form `claude plugin install X@Y` is deterministic
+  and scriptable; follow with `/reload-plugins` to activate in the current session. (Trap T8.)
+- Verify with `claude plugin list` and `claude plugin marketplace list`.
+
+---
+
+## Q&A — `marketplace add` vs `install`
+
+**Q: What does `/plugin marketplace add <path>` do?**
+
+It **registers a catalog**, it does not install anything. Claude Code reads the
+`.claude-plugin/marketplace.json` at that path, learns the marketplace `name` and its list of
+plugins (each with `source`, `description`), and records it so those plugins become **installable by
+name**. Like *subscribing to an app store's catalog* — not downloading an app. You then separately
+`/plugin install <plugin>@<marketplace>` to materialize + activate one. Two steps on purpose: one
+marketplace can list many plugins.
+
+---
+
+## Correction — plugin commands are namespaced (`/plugin:command`)
+
+Earlier (Chunks 5–6) I said a file `commands/greet.md` becomes `/greet`. **For a plugin, commands are
+namespaced by the plugin name:** `toy-greet-plugin/commands/greet.md` → **`/toy-greet:greet`**, never
+bare `/greet`. (A file at `skills/greet/SKILL.md` would also surface as `/toy-greet:greet`.) The
+namespacing prevents command-name collisions between installed plugins.

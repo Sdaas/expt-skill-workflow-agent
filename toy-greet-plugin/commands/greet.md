@@ -2,7 +2,8 @@
 description: Toy 2-gate workflow that composes a personalized greeting with human approval gates.
 ---
 
-# /greet — a 2-gate greeting workflow
+# /toy-greet:greet — a 2-gate greeting workflow
+<!-- Invoked as /toy-greet:greet (plugin commands are namespaced by plugin name). -->
 
 You are running the **greet** workflow. Follow these phases IN ORDER. Do not skip a gate.
 

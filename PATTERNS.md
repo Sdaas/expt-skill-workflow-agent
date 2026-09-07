@@ -68,4 +68,14 @@
 - ⚠️ **T7 — Declare feature dependencies explicitly.** The Claude Code feature needs npm; add the
   Node feature *before* it, or the image build fails.
 
+## Installing & invoking plugins
+- ✅ **P12 — Plugin commands are namespaced `/<plugin>:<command>`.** `commands/greet.md` in plugin
+  `toy-greet` → `/toy-greet:greet`, never bare `/greet`. Prevents collisions across installed plugins.
+- ⚠️ **T8 — Prefer the CLI installer for scripted/deterministic installs.** Typing `/plugin install
+  X@Y` as a one-liner in a session may just open the manager UI and no-op (no confirmation). Use
+  `claude plugin install X@Y` (CLI), then `/reload-plugins` to activate in the current session.
+  Verify with `claude plugin list` / `claude plugin marketplace list`.
+- ⚠️ **T9 — `marketplace add` ≠ `install`.** `add` registers a catalog (nothing installed yet);
+  `install <plugin>@<marketplace>` materializes + activates one plugin from it.
+
 <!-- New patterns appended below as chunks reveal them. -->

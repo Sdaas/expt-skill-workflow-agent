@@ -1,0 +1,14 @@
+{
+  "name": "toy-local-marketplace",
+  "owner": {
+    "name": "Soumendra Daas",
+    "email": "soumendra.daas@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "toy-greet",
+      "source": "./toy-greet-plugin",
+      "description": "Toy 2-gate greeting workflow — a learning scaffold for plugin/command mechanics."
+    }
+  ]
+}
