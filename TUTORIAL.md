@@ -34,6 +34,7 @@
 - Q&A — How is subagent isolation actually enforced (the guard hook)?
 - Chunk 14 — Gate 4: TEST-REVIEW (the independent critic)
 - Chunk 15 — Gate 5: IMPLEMENT (inner loop to green) + test-integrity hook
+- Chunk 16 — Gate 6: VERIFY (outer loop — observe the real thing)
 
 ---
 
@@ -626,3 +627,25 @@ implementer any Edit/Write to a test file** (`tests/`, `test_*.py`, `_test.py`, 
 CODE-REVIEW. The general principle: **when an agent's own acceptance criteria live in files it could
 technically edit, deny it write access to those files by role** — don't let the producer grade its own
 homework.
+
+---
+
+## Chunk 16 — Gate 6: VERIFY (outer loop — observe the real thing)
+
+Green unit tests prove the *tests* pass; **VERIFY proves the *feature* works.** It's the **outer loop**
+around IMPLEMENT's inner loop:
+
+```
+OUTER (until ACs + boundaries observably pass):
+    INNER (until unit tests green): implement → pytest + ruff + mypy
+    then VERIFY: drive the REAL feature per-AC + every boundary un-mocked
+    if a defect is observed → back to INNER (IMPLEMENT)
+```
+
+A **fresh, read-only** `implement-feature:verifier` (not the author) drives the real public function/flow
+and confirms the **observed** result for each acceptance criterion, and exercises **every boundary
+un-mocked** at least once — because *a mock only encodes your assumptions about a dependency; if those
+are wrong, mocked tests pass while reality fails* (T10). It writes `verify-report.md`; a FAIL loops back
+to IMPLEMENT. Two ideas converge here: "green tests are not Done" (the outer loop exists) and
+independence (a different agent runs it, dodging the author's confirmation bias — the same reason
+TEST-REVIEW is a separate agent).

@@ -228,4 +228,14 @@
   rule and the whole-diff code-review (three layers). Generalizes: whenever an agent's *acceptance
   criteria* live in files it can technically edit, deny it write access to those files by role.
 
+---
+
+## Verification (Chunk 16)
+- ✅ **P34 — Nested inner/outer loop: unit-green inside, observed-behavior outside.** The inner loop
+  (IMPLEMENT) closes on machine-checkable unit green (pytest+ruff+mypy); the outer loop (VERIFY) closes
+  only when the **real** feature is driven on each AC and every boundary is exercised **un-mocked** — a
+  fresh, read-only agent, not the author. A defect in the outer loop re-enters the inner loop. "Green
+  tests are not Done" (T10) is the reason the outer loop exists; independence (P13) is why a different
+  agent runs it.
+
 <!-- New patterns appended below as chunks reveal them. -->

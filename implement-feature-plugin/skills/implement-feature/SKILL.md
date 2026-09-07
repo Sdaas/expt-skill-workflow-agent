@@ -246,9 +246,29 @@ in depth: (a) the **guard hook denies the implementer any Edit/Write to a test f
 Exit when green; append the run-log entry, then proceed to VERIFY. (Coverage + mutation
 are the slow checks, enforced at CODE-REVIEW — not here.)
 
-## Gate 6 — VERIFY  [I] `verifier`  (outer loop)   *(fleshed in Chunk 16)*
-Drive the **real** feature on each AC; exercise every boundary **un-mocked** once.
-Defect → back to IMPLEMENT.
+## Gate 6 — VERIFY  [I] `verifier`  (outer loop)
+
+**Green unit tests are not Done.** Spawn a **fresh, read-only** verifier —
+`subagent_type: implement-feature:verifier` (Sonnet/high; observes, cannot fix — pinned in
+`agents/verifier.md`). It did not write the code, so it won't drive it the way the author
+expects. Its inbox: `requirements.md` (the ACs + boundary inventory) and `src/` (to invoke
+the real thing, not to trust it).
+
+**It must:**
+1. For **each acceptance criterion**, invoke the **real** public function/flow and confirm
+   the **observed** result matches — not just that a test is green.
+2. For **every external boundary** in the inventory, exercise it **un-mocked** at least
+   once (a mocked test only proved the mock). If the inventory is "None (pure feature)",
+   verify on the acceptance examples and say so.
+3. If `requirements.md` flagged concurrency, run the stress/property checks per
+   `references/quality-standards.md`.
+
+It writes `<workdir>/handoff/verify-report.md`: per-AC **observed** PASS/FAIL with the
+actual value, the boundary drives performed, and an overall verdict.
+
+**This is the OUTER loop.** On any FAIL → go **back to IMPLEMENT (Gate 5)** — re-enter the
+inner loop, fix, re-green, then re-VERIFY (bounded; surface to the human if it won't
+converge). On all-PASS → append the run-log entry and proceed to CODE-REVIEW.
 
 ## Gate 7 — CODE-REVIEW + quality  [I] `code-reviewer`   *(fleshed in Chunk 17)*
 Whole-diff review + the **slow checks**: **coverage** (`pytest-cov`) and **mutation

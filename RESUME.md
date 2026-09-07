@@ -23,14 +23,13 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 15 ✅ (2026-09-07) — fleshed **Gate 5 IMPLEMENT**: the isolated
-  `implement-feature:implementer` (Sonnet/high, sees full design + tests), inner loop until
-  green = pytest + ruff + mypy; never weaken the tests. Extended the guard hook with a **4th job**:
-  deny the implementer any Edit/Write to test files (test-integrity), unit-tested + regressions pass.
-  Three-layer test integrity (hook + rule + code-review).
-- **Next chunk to deliver:** Chunk 16 (Part D) — flesh **Gate 6 VERIFY**: outer loop; drive the real
-  feature on each AC + exercise every boundary un-mocked; defect → back to IMPLEMENT.
-- **Awaiting from user:** delivering Chunk 16 now (user said "continue").
+- **Last completed chunk:** Chunk 16 ✅ (2026-09-07) — fleshed **Gate 6 VERIFY**: a fresh read-only
+  `implement-feature:verifier` (Sonnet/high) drives the REAL feature on each AC (observed PASS/FAIL,
+  not just green tests) and exercises every boundary **un-mocked**; concurrency stress if flagged. It's
+  the **outer loop** — a FAIL sends the conductor back to IMPLEMENT. Outbox `verify-report.md`.
+- **Next chunk to deliver:** Chunk 17 (Part D) — flesh **Gate 7 CODE-REVIEW**: whole-diff isolated
+  reviewer + the slow checks (coverage via pytest-cov, mutation kill-rate via mutmut); bounded loop.
+- **Awaiting from user:** delivering Chunk 17 now (user said "next").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -54,6 +53,9 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 16 ✅ (build): fleshed Gate 6 VERIFY in `SKILL.md` — fresh read-only verifier,
+  drive real feature per-AC + un-mocked boundaries; outer loop back to IMPLEMENT on defect. Added P34
+  (nested inner/outer loop). Committed.
 - 2026-09-07 — Chunk 15 ✅ (build): fleshed Gate 5 IMPLEMENT in `SKILL.md` (Sonnet implementer, full
   design + tests inbox, inner loop to green=pytest+ruff+mypy, never weaken tests). Extended guard hook
   (job #4: implementer denied Edit/Write on test files; matcher now includes Edit|Write; unit-tested).
