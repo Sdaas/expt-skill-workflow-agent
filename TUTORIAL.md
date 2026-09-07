@@ -28,6 +28,8 @@
 - Q&A — Where do lint/type/concurrency checks live, and how are tools guaranteed?
 - Chunk 11 — Gate 1: the grilling-style INTERVIEW
 - Q&A — Our Gate 1 vs the `grilling` skill
+- Chunk 12 — Gate 2: DESIGN/SPEC + the interface/internal split + test plan
+- Q&A — Why thresholds live in the test plan, and why record alternatives
 
 ---
 
@@ -500,3 +502,37 @@ when frontier empty · same `❓ … ➡️` format). We then wrapped it for pip
 Trade-off of *borrowing* (vs delegating to `grill-me`): no plugin dependency and we control the
 artifact, but we don't auto-inherit upstream improvements to `grilling`. (`grill-me` itself is just a
 one-line manual launcher for `grilling` with `disable-model-invocation: true`.)
+
+---
+
+## Chunk 12 — Gate 2: DESIGN/SPEC + the interface/internal split + test plan
+
+Gate 2 reads `requirements.md` and writes **three** handoff files:
+- **`design-interface.md`** — the *public contract only* (signatures, types, I/O, observable
+  error/edge behavior, invariants). **Shared** with the test-writer.
+- **`design-internal.md`** — the *algorithm*, data structures, alternatives, complexity, quality
+  expectations, risks. **Withheld** from the test-writer; seen by implementer + reviewers.
+- **`test-plan.md`** — enumerated tests (unit/api/e2e) each traced to an AC or boundary, plus the
+  coverage + mutation-kill **thresholds** and a concurrency plan (mandated iff the feature is
+  concurrent/async).
+
+**Why the split is the mechanism (P15):** if the algorithm leaked into the interface, the test-writer
+would derive tests *from the algorithm* → tests encode the implementation's own assumptions → a wrong
+implementation sharing those assumptions still passes. Splitting forces tests to encode the
+**contract**, so they can *fail* a bad implementation. Close: present approach + alternatives + files →
+**STOP-until-APPROVED** → write.
+
+---
+
+## Q&A — Why thresholds live in the test plan, and why record alternatives
+
+**Q1: Why put the coverage/mutation numbers in the per-feature `test-plan.md` instead of in the shared
+`code-reviewer.md` agent?** Because the thresholds are **risk-dependent per feature** (payments → 95%;
+log formatter → 80%). `code-reviewer.md` is a *shared, versioned* agent reused across every run;
+hardcoding a number there forces one global value and an edit to the shared agent per feature. The test
+plan lets the human set them at Gate 2, and the reviewer reads them generically. That's **P24**:
+universal *commands* in `quality-standards.md`, per-feature *numbers* in the test plan.
+
+**Q2: Why record rejected alternatives, not just the chosen design?** It's an **ADR** (architecture
+decision record — P27). Two months later, "why this and not that?" is answerable from the file instead
+of lost; and the code-reviewer can check the chosen approach still holds against what was rejected.

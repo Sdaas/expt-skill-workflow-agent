@@ -173,4 +173,12 @@
   for the boundary inventory, so downstream gates can tell "no boundaries" apart from "forgot to list
   them" — the latter lets a real boundary go un-exercised (T10) and the defect escapes.
 
+---
+
+## Design / spec (Chunk 12)
+- ✅ **P27 — Record rejected alternatives (ADR) in the durable design file.** `design-internal.md`
+  captures the alternatives considered and *why they were rejected*, not just the chosen approach — so
+  "why this and not that?" is answerable months later, and the reviewer can check the decision still
+  holds. (Extends the interface/internal split, P15, and the file-handoff discipline, P3.)
+
 <!-- New patterns appended below as chunks reveal them. -->

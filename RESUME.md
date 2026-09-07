@@ -23,14 +23,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 11 ✅ (2026-09-07) — fleshed **Gate 1 INTERVIEW** in `SKILL.md`
-  (grilling design-tree/rounds method, facts-via-subagent, four mandatory buckets: functional ACs +
-  non-functional ACs + constraints + boundary inventory, STOP-until-APPROVED before writing the
-  outbox) and added `references/requirements-template.md`. Compared our borrowed grilling vs the
-  mattpocock `grilling` skill (same engine; we add schema + approval gate + file handoff).
-- **Next chunk to deliver:** Chunk 12 (Part D) — flesh **Gate 2 DESIGN/SPEC**: interface/internal
-  design split + the test plan (unit/api/e2e list + coverage & mutation thresholds). Human-approval gate.
-- **Awaiting from user:** delivering Chunk 12 now (user said "next").
+- **Last completed chunk:** Chunk 12 ✅ (2026-09-07) — fleshed **Gate 2 DESIGN/SPEC** in `SKILL.md`:
+  the interface/internal design split (algorithm-blind test-writer, P15), a three-file outbox, and the
+  test plan (unit/api/e2e list traced to ACs/boundaries + coverage & mutation thresholds + concurrency
+  mandate), all behind STOP-until-APPROVED. Added `design-interface-template.md`,
+  `design-internal-template.md` (records alternatives = ADR), `test-plan-template.md`.
+- **Next chunk to deliver:** Chunk 13 (Part D) — flesh **Gate 3 WRITE-TESTS**: spawn the isolated,
+  algorithm-blind `test-writer` subagent (our first real isolated-agent spawn); confirm red.
+- **Awaiting from user:** delivering Chunk 13 now (user said "next").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -54,6 +54,11 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 12 ✅ (build): fleshed Gate 2 DESIGN/SPEC in `SKILL.md` (interface/internal
+  split, 3-file outbox, test plan w/ coverage+mutation thresholds + concurrency mandate, STOP-until-
+  APPROVED). Added `references/{design-interface,design-internal,test-plan}-template.md`. Clarified why
+  thresholds live per-feature in the test plan (P24) not in the shared code-reviewer agent, and why
+  design records rejected alternatives (ADR). Added P27 to PATTERNS. Committed (commit-per-chunk rule).
 - 2026-09-07 — Chunk 11 ✅ (build): fleshed Gate 1 INTERVIEW in `SKILL.md` + added
   `references/requirements-template.md` (6-section artifact). Method = borrowed grilling engine
   (design tree, rounds, frontier, numbered Qs w/ recommended answers, facts-via-subagent) wrapped with
@@ -130,6 +135,12 @@ design-patterns/anti-patterns/traps checklist we apply when building.
     green-def, coverage/mutation gates, concurrency policy)
   - `skills/implement-feature/references/requirements-template.md` — Gate 1 outbox structure
     (summary, functional ACs, non-functional ACs, constraints, boundary inventory, out-of-scope)
+  - `skills/implement-feature/references/design-interface-template.md` — Gate 2 public contract (shared
+    with the algorithm-blind test-writer)
+  - `skills/implement-feature/references/design-internal-template.md` — Gate 2 algorithm + alternatives
+    (ADR), withheld from the test-writer
+  - `skills/implement-feature/references/test-plan-template.md` — Gate 2 test inventory + coverage &
+    mutation thresholds + concurrency plan
   - `toolchain/requirements-dev.txt` — pinned dev tools (installed by `.devcontainer` postCreate)
   - `agents/{test-writer,test-reviewer,implementer,verifier,code-reviewer}.md` — model-pinned isolated
     gates (read-only critics via `disallowedTools`; test-writer blind to `design-internal.md`)
