@@ -37,8 +37,15 @@ design-patterns/anti-patterns/traps checklist we apply when building.
   optional to revisit.)
 
 ## Resuming the container next session (quick ref)
+> NOTE (2026-09-07 pause): the container **and image were deleted** at session end, but the login
+> **volume `expt-skill-workflow-claude` was kept**. So `devcontainer up` will **rebuild the image**
+> (slower first time; postCreate reinstalls the toolchain) — login should still persist via the volume.
+> Also **reinstall the `implement-feature` plugin** on resume so the cached copy picks up the Chunk-15
+> guard-hook update (4th job: implementer can't edit tests): `claude plugin marketplace update
+> toy-local-marketplace && claude plugin uninstall implement-feature && claude plugin install
+> implement-feature@toy-local-marketplace`.
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
-2. `devcontainer up --workspace-folder .`  (fast — image cached; container recreated if removed)
+2. `devcontainer up --workspace-folder .`  (rebuilds the image this time; recreates the container)
 3. `devcontainer exec --workspace-folder . claude`  (login persists via the volume; usually no re-login)
 4. The `toy-local-marketplace` + `toy-greet` install persist in the `~/.claude` volume; if
    `/toy-greet:greet` isn't present, re-run `claude plugin install toy-greet@toy-local-marketplace`
