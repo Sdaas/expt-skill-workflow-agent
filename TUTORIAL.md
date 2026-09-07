@@ -26,6 +26,8 @@
 - Q&A — Proving isolation & tracking usage (observability)
 - Chunk 10 — Scaffolding the conductor + agent-definition files
 - Q&A — Where do lint/type/concurrency checks live, and how are tools guaranteed?
+- Chunk 11 — Gate 1: the grilling-style INTERVIEW
+- Q&A — Our Gate 1 vs the `grilling` skill
 
 ---
 
@@ -459,3 +461,42 @@ hard-fails if any tool is missing — nothing proceeds on a broken environment. 
 once in `quality-standards.md`; the *threshold numbers* are per-feature and live in Gate 2's test plan
 (P24). **Concurrency** has no single Python tool, so it's mandated by the test plan only when the
 boundary inventory shows the feature is concurrent/async — otherwise skipped with a stated reason.
+
+---
+
+## Chunk 11 — Gate 1: the grilling-style INTERVIEW
+
+Gate 1 turns a one-line request into `requirements.md`. **Method (borrowed from `grilling`, P19):**
+model the feature as a **design tree**; work it in **rounds**; each round ask the whole **frontier**
+(questions whose prerequisites are settled), one numbered question at a time **with a recommended
+answer**, then wait. **Facts are the agent's job** — dispatch a subagent to look up anything in the
+environment (keeps the conductor's context lean; only the fact returns). **Decisions are the human's.**
+Done when the frontier is empty — nothing silently assumed.
+
+**Four mandatory buckets** (schema in `references/requirements-template.md`): functional ACs ·
+non-functional ACs (scale/perf/security) · constraints (mandated/forbidden tech — P18) · boundary
+inventory (each boundary + how it's exercised un-mocked; "None (pure feature)" is a *required*
+explicit answer — T17). Then **summarize → STOP-until-APPROVED → write the file** (T16: the artifact's
+existence equals its blessing).
+
+---
+
+## Q&A — Our Gate 1 vs the `grilling` skill
+
+**Q: How does our Gate 1 compare to the installed mattpocock `grilling` skill?**
+
+**Same engine, different wrapper.** We copied grilling's *interview algorithm* verbatim in spirit
+(design tree · rounds · frontier · numbered Qs with recommended answers · facts-via-subagent · done
+when frontier empty · same `❓ … ➡️` format). We then wrapped it for pipeline use (P26):
+
+| | `grilling` skill | Our Gate 1 |
+|---|---|---|
+| Purpose | Sharpen *any* plan/idea | Produce `requirements.md` |
+| Completion | Frontier empty → "shared understanding" | Frontier empty **AND** four buckets covered |
+| Output | *Explicitly none* ("do not act") | Durable artifact via template, consumed downstream |
+| Approval | Soft ("don't act until confirmed") | Formal STOP-until-APPROVED + outbox + run-log |
+| Context | Standalone, ephemeral | One gate in the conductor score |
+
+Trade-off of *borrowing* (vs delegating to `grill-me`): no plugin dependency and we control the
+artifact, but we don't auto-inherit upstream improvements to `grilling`. (`grill-me` itself is just a
+one-line manual launcher for `grilling` with `disable-model-invocation: true`.)

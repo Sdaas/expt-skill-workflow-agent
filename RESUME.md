@@ -17,18 +17,20 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 4. **Patterns checklist:** keep capturing design patterns / anti-patterns / traps in `PATTERNS.md`
    as they arise — the checklist we'll apply when building the toy and the real solution.
 5. **Files:** deliverables under this folder; temp files in `/tmp/` or `*.tmp`, deleted when done.
+6. **Commit per chunk:** on each advance ("next"), after recording the docs, **commit all of that
+   chunk's changes** (one commit per chunk) before starting the next chunk. Never carry more than the
+   current chunk's work uncommitted. (Instruction added 2026-09-07.)
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 10 ✅ (2026-09-07) — scaffolded `implement-feature-plugin/`: thin
-  command → `implement-feature` skill (conductor score, Gate 0 FULL incl. preflight + model plan,
-  Gates 1–10 stubbed), 5 model-pinned agent-def files, a pinned **toolchain** + a **quality-standards**
-  reference. Folded in the quality dimension the user flagged: ruff/mypy/pytest gate the IMPLEMENT
-  inner loop; pytest-cov + mutmut gate CODE-REVIEW (split-by-speed); Gate 0 hard-fail preflight;
-  concurrency = boundary-driven; tools pinned + installed in the dev container. Committed.
-- **Next chunk to deliver:** Chunk 11 (Part D) — flesh the grilling-style **INTERVIEW** gate (Gate 1)
-  → `requirements.md` with functional + non-functional ACs + constraints + boundary inventory.
-- **Awaiting from user:** delivering Chunk 11 now (user said "next … then continue").
+- **Last completed chunk:** Chunk 11 ✅ (2026-09-07) — fleshed **Gate 1 INTERVIEW** in `SKILL.md`
+  (grilling design-tree/rounds method, facts-via-subagent, four mandatory buckets: functional ACs +
+  non-functional ACs + constraints + boundary inventory, STOP-until-APPROVED before writing the
+  outbox) and added `references/requirements-template.md`. Compared our borrowed grilling vs the
+  mattpocock `grilling` skill (same engine; we add schema + approval gate + file handoff).
+- **Next chunk to deliver:** Chunk 12 (Part D) — flesh **Gate 2 DESIGN/SPEC**: interface/internal
+  design split + the test plan (unit/api/e2e list + coverage & mutation thresholds). Human-approval gate.
+- **Awaiting from user:** delivering Chunk 12 now (user said "next").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -52,6 +54,11 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 11 ✅ (build): fleshed Gate 1 INTERVIEW in `SKILL.md` + added
+  `references/requirements-template.md` (6-section artifact). Method = borrowed grilling engine
+  (design tree, rounds, frontier, numbered Qs w/ recommended answers, facts-via-subagent) wrapped with
+  a required 4-bucket schema + STOP-until-APPROVED + outbox write. Captured the grilling-vs-`grilling`
+  comparison Q&A into TUTORIAL. Added P26/T16 to PATTERNS.
 - 2026-09-07 — Chunk 10 ✅ (build): scaffolded `implement-feature-plugin/` (plugin.json, thin command,
   `skills/implement-feature/SKILL.md` conductor score, 5 agent-def files under `agents/`). Grounded the
   agent frontmatter (`model`/`effort`/`tools`/`disallowedTools`) in the user's `claude-sdlc` agent
@@ -121,6 +128,8 @@ design-patterns/anti-patterns/traps checklist we apply when building.
     Gates 1–10 stubbed, fleshed in Chunks 11–18)
   - `skills/implement-feature/references/quality-standards.md` — Definition of Done (toolchain,
     green-def, coverage/mutation gates, concurrency policy)
+  - `skills/implement-feature/references/requirements-template.md` — Gate 1 outbox structure
+    (summary, functional ACs, non-functional ACs, constraints, boundary inventory, out-of-scope)
   - `toolchain/requirements-dev.txt` — pinned dev tools (installed by `.devcontainer` postCreate)
   - `agents/{test-writer,test-reviewer,implementer,verifier,code-reviewer}.md` — model-pinned isolated
     gates (read-only critics via `disallowedTools`; test-writer blind to `design-internal.md`)

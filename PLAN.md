@@ -114,6 +114,9 @@ Design (all four decisions = recommended option, 2026-09-07):
    the next advance.
 4. Maintain `PATTERNS.md` — a running design-patterns / anti-patterns / traps checklist to apply
    when building the toy and the real solution.
+5. Commit each chunk before moving on: on every "next", after recording docs, commit all of that
+   chunk's changes (one commit per chunk). Never accumulate multiple chunks of uncommitted work.
+   (Added 2026-09-07.)
 
 ## Change-of-direction log
 - 2026-09-06 — **Testing strategy decided: dev-container sandbox.** Instead of installing the

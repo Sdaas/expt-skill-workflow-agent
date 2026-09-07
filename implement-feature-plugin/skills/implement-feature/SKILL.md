@@ -87,17 +87,70 @@ Record the confirmed plan into `<workdir>/handoff/run-log.jsonl` (first entries)
 
 ---
 
-## Gate 1 — INTERVIEW  [C] ↔ human   *(fleshed in Chunk 11)*
-Grilling-style rounds → `requirements.md`: functional + non-functional ACs
-(scale/perf/security) + explicit **constraints** (mandated/forbidden tech) + the
-**boundary inventory**. Human-approval gate.
+## Gate 1 — INTERVIEW  [C] ↔ human
 
-## Gate 2 — DESIGN / SPEC  [C] ↔ human   *(fleshed in Chunk 12)*
-`design-interface.md` (public contract) + `design-internal.md` (algorithm, withheld
-from the test-writer) + a **test plan** (unit/api/e2e list + **coverage & mutation-kill
-thresholds**, which the CODE-REVIEW gate enforces). If the boundary inventory shows the
-feature is concurrent/async, the test plan MUST mandate property/stress tests per the
-concurrency policy in `references/quality-standards.md`. Human-approval gate.
+Interview to full clarity using a **grilling** approach. Do NOT guess scope.
+
+**Method (design tree, worked in rounds):**
+- Map the feature as a tree of decisions. Each round, ask the whole **frontier** —
+  every question whose prerequisites are already settled.
+- Format each question numbered, with **your recommended answer**:
+  ```
+  ❓ **Q1** — **<title>**: <question, incl. options>
+  ➡️ <your recommended answer>
+  ```
+- **Facts are your job; decisions are the human's.** If a question needs a fact from the
+  environment (existing code, conventions, deps), dispatch a subagent to find it — don't
+  ask the human what you can look up. A running lookup is an unsettled prerequisite: ask
+  the rest of the frontier now, defer the questions downstream of it.
+- Each answer reshapes the tree; recompute the frontier and ask the next round. Done when
+  the frontier is empty — **nothing silently assumed**.
+
+**You must reach explicit answers for all four buckets** (see
+`references/requirements-template.md`):
+1. **Functional ACs** — inputs/outputs, behavior, error conditions, edge cases.
+2. **Non-functional ACs** — scale, performance, security (write "N/A — reason" if none).
+3. **Constraints** — mandated/forbidden tech, libraries, patterns, style.
+4. **Boundary inventory** — external boundaries (network/subprocess/fs/entrypoint/dep),
+   each with how it will be exercised un-mocked at VERIFY. "None (pure feature)" is valid.
+
+**Close the gate:**
+- Summarize the four buckets back to the human.
+- **STOP. Do not write `requirements.md` or proceed until the human replies APPROVED.**
+- On approval, write `<workdir>/handoff/requirements.md` using
+  `references/requirements-template.md`. Append the run-log entry.
+
+## Gate 2 — DESIGN / SPEC  [C] ↔ human
+
+Read `<workdir>/handoff/requirements.md`. Decide the solution's shape and write **three**
+handoff files (use the templates in `references/`).
+
+**The interface / internal split (the mechanism that keeps the test-writer blind, P15):**
+- `<workdir>/handoff/design-interface.md` — the **public contract only** (signatures,
+  types, I/O, observable error/edge behavior, invariants). **Shared** with the
+  test-writer. Template: `references/design-interface-template.md`.
+- `<workdir>/handoff/design-internal.md` — the **algorithm**, data structures,
+  alternatives, complexity, quality expectations, risks. **Withheld** from the
+  test-writer; seen by implementer + reviewers. Template:
+  `references/design-internal-template.md`.
+  **Rule: nothing that reveals the algorithm may leak into `design-interface.md`.**
+
+**The test plan** (`<workdir>/handoff/test-plan.md`, template
+`references/test-plan-template.md`) — consumed by test-writer, test-reviewer, and
+code-reviewer:
+- Enumerated tests (**unit / api / e2e**), each traced to an **AC or a boundary**;
+  cover happy path, edges, negatives, and every boundary in the inventory.
+- **Coverage threshold** and **mutation kill-rate threshold** (the numbers Gate 7
+  enforces via `pytest-cov` / `mutmut`).
+- If `requirements.md`'s boundary inventory flags the feature concurrent/async, the plan
+  MUST include the property/stress/async tests + concurrency review focus (per
+  `references/quality-standards.md`); otherwise state "No concurrency surface — skipped."
+
+**Close the gate:**
+- Present the approach + alternatives considered + the two design files + the test plan.
+  (For a complex feature, optionally spawn a fresh design-review subagent first.)
+- **STOP. Do not write the handoff files or proceed until the human replies APPROVED.**
+- On approval, write the three files and append the run-log entry.
 
 ## Gate 3 — WRITE-TESTS  [I] `test-writer`   *(fleshed in Chunk 13)*
 Spawn the algorithm-blind test-writer (inbox = requirements + design-interface only).

@@ -157,4 +157,20 @@
   honored for plugin agents, and how a subagent resolves a skill-relative file path — all confirmed
   at install-time in the sandbox, not assumed.
 
+---
+
+## Interview & handoff artifacts (Chunk 11)
+- ✅ **P26 — Borrow the interview engine, but wrap it with schema + gate + handoff.** Reuse the
+  `grilling` method (design tree, rounds, frontier, numbered Qs w/ recommended answers, facts-via-
+  subagent), but bind it to a **required output schema** (the four buckets: functional ACs,
+  non-functional ACs, constraints, boundary inventory), an **approval gate**, and a **durable outbox**.
+  Frontier-empty is necessary but not sufficient — the schema must also be fully covered.
+- ⚠️ **T16 — Write a handoff artifact only AFTER approval.** For a file downstream gates treat as a
+  trusted contract, its *existence should equal its blessing*. Writing pre-approval risks an abandoned
+  half-baked file and downstream gates ingesting un-approved content as truth. Summarize → APPROVED →
+  write.
+- ⚠️ **T17 — Force explicit "none" for enumerations.** Make "None (pure feature)" a required answer
+  for the boundary inventory, so downstream gates can tell "no boundaries" apart from "forgot to list
+  them" — the latter lets a real boundary go un-exercised (T10) and the defect escapes.
+
 <!-- New patterns appended below as chunks reveal them. -->
