@@ -15,6 +15,8 @@
 - Chunk 6 — The toy build (`/greet`)
 - Q&A — Where plugins install & the dev flow (host pollution)
 - Decision — Dev-container test sandbox
+- Chunk 7 — Building the sandbox (devcontainer CLI + features)
+- Q&A — `devcontainer up` vs plain `docker run`
 
 ---
 
@@ -222,3 +224,46 @@ Code devcontainer · repo mounted in · container `~/.claude` on a named volume 
 | **Dev container** (chosen) | **None** | **Full** | Medium (one-time) |
 | Project-scoped host install | Cached copy only, reversible | Full | Low |
 | Simulate run, no install | None | Low | Zero |
+
+---
+
+## Chunk 7 — Building the sandbox (devcontainer CLI + features)
+
+A **dev container** = a Docker image with your tools + config saying "mount my code, drop me at a
+shell." Because Claude Code's `~/.claude` lives *inside*, the host is never touched.
+
+Our setup (Option A, modeled on `~/dev/hello-dev-container`):
+- **`.devcontainer/` at the repo root** → the whole repo is the workspace (mounted at
+  `/workspaces/<repo>`). Plugin source in `toy-greet-plugin/`; `test-toy-greet-plugin/` is the
+  in-container scratch project.
+- **Base:** `mcr.microsoft.com/devcontainers/python:3.12` + uv (the real product is Python).
+- **Node.js + Claude Code via devcontainer *features*** — declared, so they survive rebuilds:
+  ```jsonc
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},               // FIRST — provides npm
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  }
+  ```
+- **Login persistence:** `~/.claude` mounted to named volume `expt-skill-workflow-claude`;
+  `postCreateCommand` chowns it to `vscode`; `DISABLE_AUTOUPDATER=1` pins the toolchain.
+
+**Lifecycle** (see `DEVCONTAINER.md`): `devcontainer up --workspace-folder .` (build+start, idempotent),
+`devcontainer exec … bash|claude`, teardown levels `stop → rm -f → volume rm → rmi`. VS Code: ⇧⌘P →
+*Reopen in Container* / *Rebuild Container*.
+
+---
+
+## Q&A — `devcontainer up` vs plain `docker run`
+
+**Q: Why use `devcontainer up` instead of a `docker run` script?**
+
+- **`docker run`**'s only edge is needing no extra CLI. Otherwise it's a redundant third path.
+- **`devcontainer up`** reads `devcontainer.json` and does build + create + mounts + **features** +
+  **lifecycle hooks** (`postCreateCommand`) + `remoteUser` in one idempotent command — and the *same*
+  config powers VS Code's "Reopen in Container." One source of truth, two front-ends.
+- **Features > hand-installs:** `npm install -g …` in a Dockerfile is lost on rebuild and hit the
+  documented "node present but npm missing" failure; the Node + Claude Code features solve both
+  (declare Node *first* — T7).
+
+**Takeaway:** for anyone already using the devcontainer CLI, `devcontainer up` + features is the
+idiomatic, reproducible, VS-Code-compatible choice. We dropped `run.sh`.

@@ -20,11 +20,11 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part A — Foundations
-- **Last completed chunk:** Chunk 6 — Toy plugin scaffolded (`toy-greet-plugin/`). Plus captured
-  dev-flow Q&As and decided the testing strategy (dev-container sandbox).
-- **Next chunk to deliver:** Chunk 7 — Build the disposable dev-container test sandbox in
-  `test-toy-greet-plugin/` (adapt Anthropic's official Claude Code devcontainer).
-- **Awaiting from user:** "next" to build the sandbox.
+- **Last completed chunk:** Chunk 7 — Dev-container sandbox built (Option A, `devcontainer` CLI).
+  Added `DEVCONTAINER.md`, repo-root `README.md`, `.gitignore`. Git repo initialized + first commit.
+- **Next chunk to deliver:** Chunk 8 — Verify exact `/plugin` commands (offer `claude-code-guide`
+  agent), add `marketplace.json`, `devcontainer up`, install the toy, run `/greet` through its gates.
+- **Awaiting from user:** "next" to start Chunk 8.
 
 ## Progress log
 - 2026-09-06 — Plan approved. Created `PLAN.md`, `RESUME.md`, `TUTORIAL.md`.
@@ -37,21 +37,35 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-06 — Fixed authorship to Soumendra Daas / soumendra.daas@gmail.com (memory + files).
 - 2026-09-06 — Decided testing strategy: dev-container sandbox (see Key decisions). Captured dev-flow
   Q&As into TUTORIAL.md; added P10/T4 to PATTERNS.md. Revised PLAN (Part B, 18 chunks).
+- 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
+  `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
+  `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
 
 ## Key decisions
 - Toy first → then real product.
 - Build from scratch; do not dissect existing installed skills.
 - Solid foundations before writing files.
 - Target code language: Python.
-- **Testing strategy = dev-container sandbox** (decided 2026-09-06). Test the plugin inside a Docker
-  dev container with its own isolated `~/.claude`; never install into the host global `~/.claude`.
+- **Testing strategy = dev-container sandbox** (decided 2026-09-06; refined 2026-09-07 to Option A).
+  Test the plugin inside a Docker dev container with its own isolated `~/.claude`; never install
+  into the host global `~/.claude`.
   - Interactive Claude login (no API key).
-  - Base adapted from Anthropic's official Claude Code devcontainer.
-  - This repo is mounted into the container (plugin source stays here).
-  - Container `~/.claude` persisted via a named volume so login survives restarts.
-  - Sandbox folder: `test-toy-greet-plugin/`. Reused to test the final product (which commits code).
+  - **Managed via the `devcontainer` CLI** (`devcontainer up/exec`) + VS Code, modeled on the user's
+    `~/dev/hello-dev-container` conventions — NOT plain `docker run` (the old `run.sh` was removed).
+  - **Option A layout:** `.devcontainer/` at the **repo root** (whole repo = workspace, mounted at
+    `/workspaces/expt-skill-wotkflow-agent`). `test-toy-greet-plugin/` is the in-container **scratch
+    project** where we install + run `/greet`. Plugin source stays in `toy-greet-plugin/`.
+  - Base: `mcr.microsoft.com/devcontainers/python:3.12` + uv; Node.js + Claude Code via devcontainer
+    **features** (node feature first, then `anthropics/devcontainer-features/claude-code`).
+  - Container `~/.claude` persisted via named volume `expt-skill-workflow-claude`; `postCreateCommand`
+    chowns it to `vscode`. `DISABLE_AUTOUPDATER=1`.
+  - Reused to test the final product (which commits code).
   - Authorship identity everywhere: **Soumendra Daas / soumendra.daas@gmail.com** (never Skye).
 
 ## Artifacts built so far
 - `toy-greet-plugin/.claude-plugin/plugin.json` — toy plugin manifest
 - `toy-greet-plugin/commands/greet.md` — `/greet` command implementing a 2-gate workflow
+- `.devcontainer/Dockerfile` — mcr python:3.12 base + uv (Option A, repo root)
+- `.devcontainer/devcontainer.json` — features (node + claude-code), volume, postCreate chown
+- `DEVCONTAINER.md` — devcontainer lifecycle (CLI) + VS Code ⇧⌘P command reference
+- `test-toy-greet-plugin/README.md` — the in-container scratch project (install + run `/greet`)

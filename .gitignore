@@ -1,0 +1,16 @@
+# Temp/scratch
+*.tmp
+*.log
+.DS_Store
+
+# Python (for the real product later)
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mutmut-cache
+
+# Node (if any local tooling)
+node_modules/
+
+# Devcontainer lock is intentionally NOT ignored (pin the toolchain)

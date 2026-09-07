@@ -60,4 +60,12 @@
   URL you open on the host). Persist the container's `~/.claude` on a named volume so login survives
   restarts without re-authenticating.
 
+- ✅ **P11 — Manage the sandbox with the `devcontainer` CLI + features (not hand-installs).** Declare
+  tools (Node, Claude Code) as devcontainer **features** so they survive rebuilds; drive it with
+  `devcontainer up/exec` (one config also works in VS Code). Put `.devcontainer/` at the **repo root**
+  so the whole repo is the workspace. Avoids the "node without npm" build failure and keeps the
+  toolchain pinned/reproducible.
+- ⚠️ **T7 — Declare feature dependencies explicitly.** The Claude Code feature needs npm; add the
+  Node feature *before* it, or the image build fails.
+
 <!-- New patterns appended below as chunks reveal them. -->

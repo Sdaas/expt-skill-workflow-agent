@@ -32,11 +32,12 @@ Driven by **skills + subagents + workflow patterns** — no hand-written orchest
 
 ### Part B — Test sandbox + toy run
 6. Scaffold a minimal plugin with one command: a 2-gate "greet" workflow (ask → confirm → act). ✅ DONE
-7. **Build the disposable test sandbox** — a dev container in `test-toy-greet-plugin/` (adapted from
-   Anthropic's official Claude Code devcontainer). Mounts this repo so plugin source stays here;
-   interactive Claude login inside the container; a persisted volume for the container's `~/.claude`
-   so login survives restarts. Host `~/.claude` is never touched. This sandbox is reused to test the
-   real product later. Teaches: dev containers + runtime isolation.
+7. **Build the disposable test sandbox** — a dev container managed via the `devcontainer` CLI
+   (Option A: `.devcontainer/` at the **repo root**, whole repo = workspace). Node.js + Claude Code
+   via devcontainer **features**; interactive login inside the container; login persisted in the
+   named volume `expt-skill-workflow-claude`. Host `~/.claude` is never touched. `test-toy-greet-plugin/`
+   is the in-container scratch project. Reused to test the real product later. Teaches: dev containers,
+   the `devcontainer` CLI + VS Code ⇧⌘P workflow, and runtime isolation. (See `DEVCONTAINER.md`.)
 8. Inside the container: add `marketplace.json`, `/plugin marketplace add` + `/plugin install`, run
    `/greet` end-to-end, watch the gates fire. Teardown notes.
 
@@ -76,6 +77,13 @@ Driven by **skills + subagents + workflow patterns** — no hand-written orchest
   Decisions: **interactive Claude login** (no API key); **base = adapted from Anthropic's official
   Claude Code devcontainer**; repo mounted into the container; container `~/.claude` persisted via a
   named volume so login survives restarts. Sandbox lives in `test-toy-greet-plugin/`.
+- 2026-09-07 — **Refined to Option A + `devcontainer` CLI.** Adopted the user's `~/dev/hello-dev-container`
+  conventions: `.devcontainer/` moved to the **repo root** (whole repo = workspace); dropped the plain
+  `docker run` path (`run.sh` removed); Node.js + Claude Code installed via devcontainer **features**
+  (not hand `npm install`); base `mcr.microsoft.com/devcontainers/python:3.12` + uv; login volume
+  `expt-skill-workflow-claude`; `postCreateCommand` chown; `DISABLE_AUTOUPDATER=1`. Managed via
+  `devcontainer up/exec` + VS Code ⇧⌘P. Added `DEVCONTAINER.md` (lifecycle + palette) and a repo-root
+  `README.md`. `test-toy-greet-plugin/` is now the in-container scratch project.
 
 ## Companion docs
 - `RESUME.md` — live progress + resume pointer.

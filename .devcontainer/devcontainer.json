@@ -1,0 +1,55 @@
+{
+  // Human-readable name shown in VS Code's UI.
+  "name": "expt-skill-workflow-agent (plugin dev)",
+
+  // Build the image from our Dockerfile (relative to this file).
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  // Run as the non-root user provided by the base image.
+  "remoteUser": "vscode",
+
+  // Reusable add-ons. The Node feature FIRST (provides node + npm), then the
+  // official Claude Code feature (its auto-install needs npm). Declaring the
+  // dependency explicitly avoids the "npm missing" build failure.
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+
+  // Persist Claude Code's config + login across rebuilds by mounting
+  // ~/.claude to a Docker named volume (lives outside the disposable container,
+  // and entirely separate from the Mac's ~/.claude).
+  "mounts": [
+    "source=expt-skill-workflow-claude,target=/home/vscode/.claude,type=volume"
+  ],
+
+  // In a Dev Container the toolchain should be pinned + reproducible (bump the
+  // claude-code feature version + rebuild), not silently self-updating.
+  "remoteEnv": {
+    "DISABLE_AUTOUPDATER": "1"
+  },
+
+  // VS Code setup applied INSIDE the container (Python tooling for the real product).
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  },
+
+  // Runs ONCE after the container is created. Docker may create the mounted
+  // ~/.claude volume owned by root; make it writable by vscode, then report versions.
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && python --version && claude --version || echo 'setup step: claude not on PATH yet (feature installs it)'"
+}
