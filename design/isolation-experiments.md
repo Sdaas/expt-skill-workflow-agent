@@ -81,9 +81,10 @@ Setup: shipped the hook with the plugin; reinstalled in the container; drove hea
 - `deny` + exit code 2 hard-blocks the tool call.
 
 ### Final posture (implemented)
-1. **Guard hook** (plugin PreToolUse) = the primary mechanism: (a) audit every Read/Bash to
+1. **Guard hook** (plugin PreToolUse) = the primary mechanism: (a) audit every tool call to
    the run-log; (b) deny secrets/`.env`/keys for ALL agents (reusable security guardrail);
-   (c) deny `design-internal.md` for the test-writer (algorithm-blind), Read *and* Bash.
+   (c) deny `design-internal.md` for the test-writer (algorithm-blind), Read *and* Bash;
+   (d) deny Edit/Write to test files for the implementer (test-integrity — added Chunk 15).
 2. **Role discipline** in the agent-def bodies stays (defense-in-depth; it stopped the read
    before the hook in H5).
 3. **Observability analyzer:** the hook run-log is the stable audit source; the transcript

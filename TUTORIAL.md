@@ -33,6 +33,7 @@
 - Chunk 13 — Gate 3: WRITE-TESTS + validating & enforcing subagent isolation
 - Q&A — How is subagent isolation actually enforced (the guard hook)?
 - Chunk 14 — Gate 4: TEST-REVIEW (the independent critic)
+- Chunk 15 — Gate 5: IMPLEMENT (inner loop to green) + test-integrity hook
 
 ---
 
@@ -604,3 +605,24 @@ It judges: **intent-match** (does each test assert the requirement or a proxy?),
 Verdict → **bounded loop**: `APPROVE` proceeds; `CHANGES-REQUESTED` re-spawns the writer with the
 findings, then re-reviews — bounded to N no-progress rounds before surfacing to a human (T11), so a
 finding the writer can't resolve doesn't spin forever.
+
+---
+
+## Chunk 15 — Gate 5: IMPLEMENT (inner loop to green) + test-integrity hook
+
+The conductor delegates to `implement-feature:implementer` (**Sonnet/high** — the weaker/cheaper model
+does the writing; the stronger Opus does the reviews, the "review > implementation" invariant, like an
+intern coding and a senior reviewing). Unlike the test-writer it **sees the full design** (it must
+implement the algorithm) and it's **not read-only** (it writes `src/`).
+
+**Inner loop, machine-gated, no human:** write minimum code → run the **fast checks** → repeat until
+**green = pytest + ruff + mypy all clean**; then refactor keeping green. Coverage + mutation are Gate
+7's slow checks.
+
+**Load-bearing rule — never weaken the tests to pass.** The tests are the approved, reviewed contract.
+Since the implementer *has* `Edit`, we enforce this in **three layers**: (1) the **guard hook denies the
+implementer any Edit/Write to a test file** (`tests/`, `test_*.py`, `_test.py`, `conftest.py`), keyed on
+`agent_type` — the same mechanism as algorithm-blindness (P33); (2) the prose rule; (3) the whole-diff
+CODE-REVIEW. The general principle: **when an agent's own acceptance criteria live in files it could
+technically edit, deny it write access to those files by role** — don't let the producer grade its own
+homework.

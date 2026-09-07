@@ -219,4 +219,13 @@
   A review gate also runs BEFORE the thing it protects (test-review before implement, P16) and its
   critic is a different, read-only, higher-model agent (P13/T14/P17), looped but bounded (T11).
 
+---
+
+## Implementation gate (Chunk 15)
+- ✅ **P33 — Stop the producer from grading its own homework.** The implementer must make the code
+  pass the tests, never edit the tests to pass. Enforce it the same way as algorithm-blindness: a guard
+  hook that denies the implementer (`agent_type`) any Edit/Write to a **test file** — plus the prose
+  rule and the whole-diff code-review (three layers). Generalizes: whenever an agent's *acceptance
+  criteria* live in files it can technically edit, deny it write access to those files by role.
+
 <!-- New patterns appended below as chunks reveal them. -->

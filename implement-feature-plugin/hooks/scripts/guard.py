@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """PreToolUse guard hook for /implement-feature.
 
-Does three jobs on every Read/Bash/Grep/Glob (for the conductor AND every subagent):
+Does four jobs on every Read/Bash/Grep/Glob/Edit/Write (conductor AND every subagent):
   1. AUDIT  — append one JSONL line per tool call (agent_id/agent_type/tool/target).
   2. SECRETS GUARDRAIL — deny reads of .env / keys / credentials for ANY agent.
   3. ALGORITHM-BLIND — deny reads of design-internal.md for the test-writer agent only.
+  4. TEST-INTEGRITY — deny the implementer editing/writing any test file (it must make
+     the code pass the tests, never weaken the tests to pass).
 
 Reads the hook JSON on stdin. To DENY: print a hookSpecificOutput deny decision and
 exit 2. To ALLOW: exit 0.
@@ -30,6 +32,15 @@ def looks_secret(target: str) -> bool:
     if base == ".env" or base.startswith(".env") or base.endswith((".pem", ".key")):
         return True
     return any(h in t for h in SECRET_HINTS)
+
+READISH = {"Read", "Bash", "Grep", "Glob"}
+WRITEISH = {"Write", "Edit", "NotebookEdit"}
+
+def is_test_path(target: str) -> bool:
+    base = os.path.basename(target)
+    return ("/tests/" in target or "/test/" in target
+            or base.startswith("test_") or base.endswith("_test.py")
+            or base == "conftest.py")
 
 def main():
     try:
@@ -63,8 +74,8 @@ def main():
         }}))
         sys.exit(2)
 
-    # 2. SECRETS GUARDRAIL — any agent, any read-ish tool
-    if looks_secret(target):
+    # 2. SECRETS GUARDRAIL — any agent, read-ish tools
+    if tool in READISH and looks_secret(target):
         deny(f"Blocked by implement-feature guard: reading secrets/.env is not allowed "
              f"(target: {os.path.basename(target) or target[:60]}).")
 
@@ -72,6 +83,11 @@ def main():
     if "test-writer" in agent_type and "design-internal" in target:
         deny("Blocked by implement-feature guard: the test-writer is algorithm-blind and "
              "must not read design-internal.md.")
+
+    # 4. TEST-INTEGRITY — the implementer may not edit/write test files
+    if "implementer" in agent_type and tool in WRITEISH and is_test_path(target):
+        deny("Blocked by implement-feature guard: the implementer must make the code pass "
+             "the tests, not modify the tests. Editing test files is not allowed.")
 
     sys.exit(0)
 

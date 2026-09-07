@@ -61,9 +61,12 @@ Two records, plus a hard guard, run alongside every gate:
    Read/Bash/Grep/Glob — a tamper-evident record of exactly what each agent read.
 3. **Guard hook enforcement (automatic, verified).** The same hook **denies**:
    - reading `.env` / keys / credentials / ssh keys — for **any** agent (security
-     guardrail); and
+     guardrail);
    - reading `design-internal.md` — for the **test-writer** only (algorithm-blind), Read
-     *and* Bash. This is defense-in-depth with the test-writer's own role instructions.
+     *and* Bash; and
+   - Edit/Write to any **test file** — for the **implementer** only (test-integrity: it
+     must pass the tests, not change them).
+   Each is defense-in-depth with the agents' own role instructions.
 
 The deterministic analyzer (built at the observability chunk) reads the hook audit
 (stable source of reads) and cross-checks the session transcript for per-agent
@@ -221,10 +224,27 @@ It writes `<workdir>/handoff/test-review-findings.md` with a **verdict**:
 The reviewer does **not** edit the tests (read-only) — it only reports; the writer makes
 the changes on the next loop.
 
-## Gate 5 — IMPLEMENT  [I] `implementer`  (inner loop)   *(fleshed in Chunk 15)*
-Minimum code to pass. **"Green" = `pytest` passes AND `ruff` clean AND `mypy` clean**
-(fast checks, per `references/quality-standards.md`). Loop until green; refactor keeping
-green. (Coverage + mutation are the slow checks, enforced at CODE-REVIEW.)
+## Gate 5 — IMPLEMENT  [I] `implementer`  (inner loop)
+
+Delegate to `subagent_type: implement-feature:implementer` (Sonnet/high; has
+Write/Edit/Bash, pinned in `agents/implementer.md`). Its inbox is the **tests** + the
+**full** design (`design-interface.md` + `design-internal.md`) + the standards file.
+
+**Inner loop (machine condition, no human):**
+1. Write the **minimum** implementation under `<workdir>/src/` per the design; honor the
+   constraints in `requirements.md`.
+2. Run the **fast checks** until all pass — **"green" = `pytest` passes AND `ruff` clean
+   AND `mypy` clean** (per `references/quality-standards.md`).
+3. Refactor while keeping green.
+
+**Load-bearing rule: make the code pass the tests — NEVER weaken or edit the tests to
+pass.** The tests are the approved, independently-reviewed contract (Gates 3–4). Enforced
+in depth: (a) the **guard hook denies the implementer any Edit/Write to a test file**
+(keyed on `agent_type`, same mechanism as the algorithm-blind rule); (b) this prose rule;
+(c) the whole-diff CODE-REVIEW (Gate 7), which flags any change under `tests/`.
+
+Exit when green; append the run-log entry, then proceed to VERIFY. (Coverage + mutation
+are the slow checks, enforced at CODE-REVIEW — not here.)
 
 ## Gate 6 — VERIFY  [I] `verifier`  (outer loop)   *(fleshed in Chunk 16)*
 Drive the **real** feature on each AC; exercise every boundary **un-mocked** once.

@@ -23,14 +23,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 14 ✅ (2026-09-07) — fleshed **Gate 4 TEST-REVIEW**: an independent
-  read-only critic (`implement-feature:test-reviewer`, Opus/high) reviews the tests BEFORE implement —
-  intent-match, non-tautology (mutation-minded), coverage, no impl leakage — over an asymmetric inbox
-  (full design incl. internal, unlike the blind writer). Verdict → bounded writer↔reviewer loop
-  (stop after 2 no-progress rounds → human). Outbox `test-review-findings.md`.
-- **Next chunk to deliver:** Chunk 15 (Part D) — flesh **Gate 5 IMPLEMENT**: the isolated implementer,
-  inner loop to green (pytest + ruff + mypy).
-- **Awaiting from user:** delivering Chunk 15 now (user said "next").
+- **Last completed chunk:** Chunk 15 ✅ (2026-09-07) — fleshed **Gate 5 IMPLEMENT**: the isolated
+  `implement-feature:implementer` (Sonnet/high, sees full design + tests), inner loop until
+  green = pytest + ruff + mypy; never weaken the tests. Extended the guard hook with a **4th job**:
+  deny the implementer any Edit/Write to test files (test-integrity), unit-tested + regressions pass.
+  Three-layer test integrity (hook + rule + code-review).
+- **Next chunk to deliver:** Chunk 16 (Part D) — flesh **Gate 6 VERIFY**: outer loop; drive the real
+  feature on each AC + exercise every boundary un-mocked; defect → back to IMPLEMENT.
+- **Awaiting from user:** delivering Chunk 16 now (user said "continue").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -54,6 +54,10 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 15 ✅ (build): fleshed Gate 5 IMPLEMENT in `SKILL.md` (Sonnet implementer, full
+  design + tests inbox, inner loop to green=pytest+ruff+mypy, never weaken tests). Extended guard hook
+  (job #4: implementer denied Edit/Write on test files; matcher now includes Edit|Write; unit-tested).
+  Added P33. Committed.
 - 2026-09-07 — Chunk 14 ✅ (build): fleshed Gate 4 TEST-REVIEW in `SKILL.md` — independent, read-only,
   higher-model critic; runs before implement; asymmetric inbox (sees full design); bounded loop back to
   the writer. Added P32 (asymmetric inboxes). Committed.
