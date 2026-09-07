@@ -78,4 +78,83 @@
 - ⚠️ **T9 — `marketplace add` ≠ `install`.** `add` registers a catalog (nothing installed yet);
   `install <plugin>@<marketplace>` materializes + activates one plugin from it.
 
+---
+
+## Conductor + isolated gates (Chunk 9 — the real product's architecture)
+- ✅ **P13 — Conductor [C] + isolated subagents [I].** One interactive **conductor** holds the
+  through-line and talks to the human; delegate the *bias-sensitive* gates (write-tests, reviews,
+  verify) to **isolated subagents** with fresh context. The human is the continuity thread integrating
+  independent specialists. Keep interview / classify-confirm / human-review on the conductor.
+- ✅ **P14 — Curated inbox/outbox handoff contract.** Every isolated gate reads a *defined* set of
+  files (its inbox) and writes a *defined* outbox — never the prior gate's raw transcript. Write the
+  contract as an explicit table. Formalizes P3.
+- ✅ **P15 — Algorithm-blind test-writer via interface/internal design split.** Split the design into
+  `design-interface.md` (public contract, shared with the test-writer) and `design-internal.md`
+  (algorithm, **withheld**). The test-writer sees requirements + interface ONLY, so its tests encode
+  the *contract*, not the code — killing anchoring. (Validated in the `claude-sdlc` A/B.)
+- ✅ **P16 — TEST-REVIEW gate, before implement.** After write-tests and *before* implement, a
+  **fresh, different** subagent reviews the tests against requirements + full design: do they encode
+  the ACs, are they non-tautological, do they cover the boundary inventory + mutation cases? Running
+  it pre-implement keeps the intent-match pure and stops weak tests anchoring the implementation. This
+  was isolation's standout win over single-session self-review.
+- ✅ **P17 — Model plan at CLASSIFY + `review > implementation` invariant.** Gate 0 proposes a
+  per-gate model/effort table; the human approves/adjusts before any work. Invariant: **design and
+  every review use a higher model (or effort) than implementation** (e.g. Opus reviews, Sonnet
+  implements). Pin BOTH model and effort via **agent-definition files** (`.claude/agents/*.md`
+  frontmatter) — the Task tool can set model inline but not effort.
+- ✅ **P18 — Capture technology/design constraints, not just behavior.** The interview must explicitly
+  ask for mandated/forbidden tech, libraries, patterns, style ("use jdbc not spring") — a section
+  distinct from functional and non-functional acceptance criteria.
+- ✅ **P19 — Grilling-style interview: design tree, worked in rounds.** Model the interview as a tree
+  of decisions; each round ask the whole *frontier* (questions whose prerequisites are settled), one
+  numbered question at a time **with your recommended answer**, then wait. **Facts are the agent's
+  job** (dispatch a sub-agent to look them up); **decisions are the user's**. Done when the frontier
+  is empty. (Borrowed from the `grilling` skill.)
+- ✅ **P20 — Observability: prove + measure the run.** Emit a live `run-log.jsonl` (declared
+  agent/model/inbox per gate) AND parse the session transcript JSONL post-hoc for ground truth
+  (model/tokens/tool-calls/files-read). Enforce isolation **preventively** (restrict tools/paths or
+  `isolation: worktree`) **and** verify it **detectively** (audit files actually read vs the declared
+  inbox). The analyzer is **deterministic Python** — measurement code, not orchestration, so it
+  doesn't violate the driverless principle.
+- ⚠️ **T10 — VERIFY ≠ green tests.** "Not Done on green tests alone." Drive the *real* function on
+  each acceptance criterion and exercise every external boundary **un-mocked** at least once — a
+  mocked test only proved the mock.
+- ⚠️ **T11 — Bound every automated loop.** TEST-REVIEW and CODE-REVIEW loops must stop after N rounds
+  with no progress and surface to the human, or they can grind forever on an intractable finding.
+- ⚠️ **T12 — Standards live in skills, not briefs (single source of truth).** A subagent brief LOADS
+  the quality standard (via `skills:` frontmatter / read-by-path); it does not restate it. To raise
+  the bar, enrich the skill, not every brief.
+- ⚠️ **T13 — Conductor can't read a subagent's internal token count** from the Task return value —
+  the ground truth is the session transcript JSONL. Real *proof* means parsing the transcript, not
+  trusting self-reports.
+
+---
+
+## Scaffolding & quality gating (Chunk 10)
+- ✅ **P21 — Thin command, heavy skill.** A command file is loaded into context **always**
+  (even when not invoked), so keep it near-empty — it just loads the skill. Put the heavy
+  workflow prose in `SKILL.md`, which loads **on demand** (progressive disclosure, P2).
+- ✅ **P22 — Pin the toolchain + hard-fail preflight.** Because the workflow is prescriptive
+  about the dev container, declare the exact tools (`toolchain/requirements-dev.txt`), install
+  them in the container (`postCreateCommand`), and **verify presence at Gate 0 — STOP if any tool
+  is missing.** Freeze exact versions after the first clean install (reproducibility).
+- ✅ **P23 — Split quality checks by speed.** Fast checks (lint `ruff` + types `mypy` + unit
+  `pytest`) define the **inner-loop "green"** the implementer must reach; slow checks (coverage
+  `pytest-cov` + mutation `mutmut`) gate **CODE-REVIEW**. Keeps the tight loop fast; the reviewer
+  owns the deep, judgement-heavy checks.
+- ✅ **P24 — Universal commands in one standards file; per-feature thresholds in the test plan.**
+  Tool *invocations* + the Definition of Done live once in `references/quality-standards.md`
+  (extends T12); the coverage/mutation *numbers* are per-feature and live in Gate 2's test plan.
+- ✅ **P25 — Situational checks are boundary-driven, not always-on.** Concurrency testing is
+  mandated by the test plan **only** when the boundary inventory shows the feature is
+  concurrent/async; otherwise skip with a stated reason (same shape as a VERIFY skip, T10).
+- ⚠️ **T14 — Read-only critics buy independence, not just safety.** `disallowedTools: Write, Edit`
+  on the reviewer/verifier stops them *silently "fixing"* (and hiding) a problem, and keeping them
+  as **separate** agents from the author stops self-review sharing the author's blind spots. The
+  restriction enforces the independence that makes the critique real (P13/P16).
+- ⚠️ **T15 — Plugin runtime-path & namespacing need verifying.** Whether plugin-provided **agents**
+  auto-discover from `agents/`, how their names are addressed when spawned, whether `effort:` is
+  honored for plugin agents, and how a subagent resolves a skill-relative file path — all confirmed
+  at install-time in the sandbox, not assumed.
+
 <!-- New patterns appended below as chunks reveal them. -->

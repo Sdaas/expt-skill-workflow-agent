@@ -19,14 +19,16 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 5. **Files:** deliverables under this folder; temp files in `/tmp/` or `*.tmp`, deleted when done.
 
 ## Status
-- **Current phase:** Part A — Foundations
-- **Last completed chunk:** Chunk 8 ✅ — installed the toy in the container and ran
-  `/toy-greet:greet`; BOTH gates fired (driverless workflow proven with real Claude Code).
-  Step 6 (live-edit demo) optional — DEFERRED, not required.
-- **Next chunk to deliver:** Chunk 9 (Part C) — decompose `/implement-feature` into phases + gates;
-  decide inline vs subagent per phase. (No files yet — a design chunk.)
-- **Awaiting from user:** SESSION PAUSED here by user. Resume with "read RESUME.md and continue",
-  then deliver Chunk 9.
+- **Current phase:** Part D — Build the real product
+- **Last completed chunk:** Chunk 10 ✅ (2026-09-07) — scaffolded `implement-feature-plugin/`: thin
+  command → `implement-feature` skill (conductor score, Gate 0 FULL incl. preflight + model plan,
+  Gates 1–10 stubbed), 5 model-pinned agent-def files, a pinned **toolchain** + a **quality-standards**
+  reference. Folded in the quality dimension the user flagged: ruff/mypy/pytest gate the IMPLEMENT
+  inner loop; pytest-cov + mutmut gate CODE-REVIEW (split-by-speed); Gate 0 hard-fail preflight;
+  concurrency = boundary-driven; tools pinned + installed in the dev container. Committed.
+- **Next chunk to deliver:** Chunk 11 (Part D) — flesh the grilling-style **INTERVIEW** gate (Gate 1)
+  → `requirements.md` with functional + non-functional ACs + constraints + boundary inventory.
+- **Awaiting from user:** delivering Chunk 11 now (user said "next … then continue").
 
 ## Resuming the container next session (quick ref)
 1. `cd /Users/sdaas/dev/expt-skill-wotkflow-agent`
@@ -50,6 +52,24 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - 2026-09-07 — Chunk 7: built dev-container sandbox (Option A, devcontainer CLI, features), mirroring
   `~/dev/hello-dev-container`. Added `.devcontainer/`, `DEVCONTAINER.md`, repo-root `README.md`,
   `.gitignore`. Captured devcontainer Q&A + P11 in TUTORIAL/PATTERNS. `git init` + first commit.
+- 2026-09-07 — Chunk 10 ✅ (build): scaffolded `implement-feature-plugin/` (plugin.json, thin command,
+  `skills/implement-feature/SKILL.md` conductor score, 5 agent-def files under `agents/`). Grounded the
+  agent frontmatter (`model`/`effort`/`tools`/`disallowedTools`) in the user's `claude-sdlc` agent
+  files. After user Qs, added the quality dimension: `toolchain/requirements-dev.txt` (pinned
+  ruff/mypy/pytest/pytest-cov/mutmut/hypothesis/pytest-asyncio), `references/quality-standards.md`
+  (Definition of Done), `.devcontainer` postCreate installs them, Gate 0 preflight hard-fails if a tool
+  is missing. Placement = split by speed. Type checker = mypy (production CI-gate choice). Two items to
+  verify in-sandbox: plugin agent namespacing/discovery, and effort honored for plugin agents.
+- 2026-09-07 — Chunk 9 ✅ (design): re-designed `/implement-feature` as an 11-gate conductor +
+  isolated-gate system. Research: read the `grilling` skill (borrowed its design-tree/round interview
+  pattern), `/sdlc-feature` v1, and the user's `claude-sdlc` `feature-as-workflow` WIP
+  (`/sdlc-feature-v2` + `design/gate-isolation-prototype.md`, already A/B-validated). Folded in:
+  interface/internal design split, TEST-REVIEW gate, model-plan-at-CLASSIFY, agent-def files for
+  effort pinning, VERIFY-observed, curated inbox/outbox contract. User additions: interview captures
+  tech **constraints**; new **observability/analysis** capability (run-log + transcript-parsing Python
+  analyzer; preventive+detective isolation). Updated PLAN (Part C done, Part D re-planned to 10–21,
+  added observability section), TUTORIAL (Chunk 9 + 3 Q&As), PATTERNS (P13–P20, T10–T13). Kept as a
+  from-scratch teaching build separate from `claude-sdlc`.
 - 2026-09-07 — Chunk 8 ✅: `claude-code-guide` verified marketplace schema + commands. Added
   `.claude-plugin/marketplace.json`. In-container: `devcontainer up` (Claude Code 2.1.260), login,
   `/plugin marketplace add`, `claude plugin install toy-greet@toy-local-marketplace`, `/reload-plugins`,
@@ -57,6 +77,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
   correction (P12/T8/T9). Committed. Session paused.
 
 ## Key decisions
+- **`/implement-feature` = 11-gate conductor + isolated-gate design** (Chunk 9, 2026-09-07). See the
+  table in `PLAN.md`. Borrows heavily from the user's validated `claude-sdlc` `/sdlc-feature-v2`
+  prototype but stays a **separate from-scratch teaching build**. Includes an observability/analysis
+  capability (the analyzer is deterministic Python — measurement, not orchestration, so "driverless"
+  holds). Per-gate models pinned via `.claude/agents/*.md`; invariant: review > implementation.
+- **Reference:** the design lineage lives in `~/dev/claude-sdlc`, branch `feature-as-workflow` —
+  `design/gate-isolation-prototype.md` (decisions D1–D10, A/B results) + the untracked
+  `.claude/commands/sdlc-feature-v2.md`. Read those to recall *why* each gate exists.
 - Toy first → then real product.
 - Build from scratch; do not dissect existing installed skills.
 - Solid foundations before writing files.
@@ -86,3 +114,13 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 - `test-toy-greet-plugin/README.md` — the in-container scratch project (install + run `/greet`)
 - `.claude-plugin/marketplace.json` — local marketplace `toy-local-marketplace` listing `toy-greet`
   (verified valid by claude-code-guide; installed + ran successfully in the container)
+- `implement-feature-plugin/` — the REAL product scaffold (Chunk 10):
+  - `.claude-plugin/plugin.json` — manifest
+  - `commands/implement-feature.md` — thin conductor entry (loads the skill)
+  - `skills/implement-feature/SKILL.md` — conductor score (Gate 0 full incl. preflight + model plan;
+    Gates 1–10 stubbed, fleshed in Chunks 11–18)
+  - `skills/implement-feature/references/quality-standards.md` — Definition of Done (toolchain,
+    green-def, coverage/mutation gates, concurrency policy)
+  - `toolchain/requirements-dev.txt` — pinned dev tools (installed by `.devcontainer` postCreate)
+  - `agents/{test-writer,test-reviewer,implementer,verifier,code-reviewer}.md` — model-pinned isolated
+    gates (read-only critics via `disallowedTools`; test-writer blind to `design-internal.md`)

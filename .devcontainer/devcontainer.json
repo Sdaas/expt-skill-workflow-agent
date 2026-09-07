@@ -49,7 +49,9 @@
     }
   },
 
-  // Runs ONCE after the container is created. Docker may create the mounted
-  // ~/.claude volume owned by root; make it writable by vscode, then report versions.
-  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && python --version && claude --version || echo 'setup step: claude not on PATH yet (feature installs it)'"
+  // Runs ONCE after the container is created. (1) Docker may create the mounted
+  // ~/.claude volume owned by root; make it writable by vscode. (2) Install the
+  // PINNED /implement-feature toolchain (ruff/mypy/pytest/pytest-cov/mutmut/...) so
+  // the workflow's Gate 0 preflight finds every tool. (3) Report versions.
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && uv pip install --system -r implement-feature-plugin/toolchain/requirements-dev.txt && python --version && ruff --version && mypy --version && pytest --version && mutmut --version && (claude --version || echo 'claude not on PATH yet (feature installs it)')"
 }

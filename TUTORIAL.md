@@ -20,6 +20,12 @@
 - Chunk 8 — Install & run the toy (marketplace → install → gates)
 - Q&A — `marketplace add` vs `install`
 - Correction — plugin commands are namespaced (`/plugin:command`)
+- Chunk 9 — Designing `/implement-feature`: conductor + isolated gates
+- Q&A — Borrow `grilling` vs delegate to it
+- Q&A — Why per-gate models need agent-definition files
+- Q&A — Proving isolation & tracking usage (observability)
+- Chunk 10 — Scaffolding the conductor + agent-definition files
+- Q&A — Where do lint/type/concurrency checks live, and how are tools guaranteed?
 
 ---
 
@@ -312,3 +318,144 @@ Earlier (Chunks 5–6) I said a file `commands/greet.md` becomes `/greet`. **For
 namespaced by the plugin name:** `toy-greet-plugin/commands/greet.md` → **`/toy-greet:greet`**, never
 bare `/greet`. (A file at `skills/greet/SKILL.md` would also surface as `/toy-greet:greet`.) The
 namespacing prevents command-name collisions between installed plugins.
+
+---
+
+## Chunk 9 — Designing `/implement-feature`: conductor + isolated gates
+
+The real product is a **conductor [C] + isolated-subagent [I]** system, not one agent walking one
+context. The **conductor** is the interactive session: it holds the through-line, talks to the human,
+and delegates the *bias-sensitive* gates to **isolated subagents** (fresh context, pinned model+
+effort, a curated *file* inbox). The human is the **continuity thread** integrating independent
+specialists. (Patterns P13–P20.)
+
+**Why isolate?** "Bias" is two problems: **anchoring** (the reviewer who watched the code get written
+shares the author's blind spots) → fixed by a **fresh context**; and **model monoculture** (one
+model's blind spot at every gate) → fixed by **model/effort diversity at the critic gates**.
+
+**The 11 gates** (see `PLAN.md` for the full table). Human gates bookend (0 classify, 1 interview,
+2 spec, 9 review); machine-condition gates run the middle unattended (3–7). Standouts:
+
+- **Gate 0 CLASSIFY** also proposes a **per-gate model/effort plan** the human approves — with the
+  invariant **design & every review use a higher model than implementation** (P17).
+- **Gate 1 INTERVIEW** captures functional ACs, **non-functional ACs** (scale/perf/security),
+  explicit **constraints** (mandated/forbidden tech — P18), and a **boundary inventory**.
+- **Gate 2 DESIGN** splits into `design-interface.md` (public contract) vs `design-internal.md`
+  (algorithm, *withheld*), plus a **test plan** with coverage + mutation-kill thresholds.
+- **Gate 3 WRITE-TESTS** is **algorithm-blind** (inbox = requirements + interface only) so tests
+  encode the contract, not the code (P15).
+- **Gate 4 TEST-REVIEW** — a *fresh* reviewer critiques the tests *before* implement (P16).
+- **Gate 6 VERIFY** — drive the *real* function on the ACs; green tests alone are not Done (T10).
+- **Gates 8–10** split what the original plan called "step 6": REVIEW-GUIDE → HUMAN REVIEW → COMMIT.
+
+**Every handoff is a file** (P14) — a defined inbox/outbox per gate, never the raw transcript. Much
+of this design was borrowed from the user's own validated `claude-sdlc` `/sdlc-feature-v2` prototype.
+
+---
+
+## Q&A — Borrow `grilling` vs delegate to it
+
+**Q: Should Phase 1 delegate to the `grilling` skill, borrow its pattern, or skip it?**
+
+**Borrow the pattern.** `grilling` models the interview as a **design tree** worked in **rounds**:
+each round asks the whole *frontier* (every question whose prerequisites are settled), one numbered
+question at a time **with a recommended answer**, then waits. Facts are the agent's job (dispatch a
+sub-agent to look them up); decisions are the user's. Done when the frontier is empty.
+
+We **bake that mechanic into our Gate 1 prose** rather than hard-delegating, because delegating (a)
+adds a plugin dependency the sandbox must carry, and (b) `grilling` stops at "shared understanding" —
+it doesn't emit our structured `requirements.md` (ACs + constraints + boundary inventory). Borrowing
+keeps us dependency-free and in control of the output artifact. (Pattern P19.)
+
+---
+
+## Q&A — Why per-gate models need agent-definition files
+
+**Q: To run each gate on a different model/effort, why not just set the model on the Task call?**
+
+The Task/Agent tool can set a subagent's **model** inline, but **not its reasoning effort**. To pin
+*both* (and to keep briefs reusable + versionable), each isolated gate becomes a **named agent type**
+defined in a file — `.claude/agents/<role>.md` — whose frontmatter carries `model`, effort, and
+`tools`, and whose body is the reusable brief. The conductor then spawns that agent by name. This is
+also how we enforce the *review > implementation* model invariant deterministically. (Pattern P17.)
+
+---
+
+## Q&A — Proving isolation & tracking usage (observability)
+
+**Q: How can the workflow *prove* different subagents ran, that each read only its inbox, and track
+model/token usage?**
+
+An **analysis capability** with two data sources (P20):
+- **Live `run-log.jsonl`** — the conductor appends an entry as each gate completes (declared agent,
+  model, inbox). This is orchestration *state*, but self-reported.
+- **Session transcript JSONL** (`~/.claude/projects/<slug>/*.jsonl`) — Claude Code records per-message
+  model + token usage + tool calls, including subagent sidechains. This is the **ground truth**; the
+  conductor can't read a subagent's internal token count from the Task return value (T13), so real
+  proof means parsing the transcript.
+
+Isolation is enforced **preventively** (restrict each agent's tools/paths, or `isolation: worktree`,
+so it *can't* read outside its inbox) **and** verified **detectively** (audit the files it actually
+read vs its declared inbox). The analyzer is a **deterministic Python parser** → per-gate
+model/tokens/tools/files-read + isolation-compliance verdict + cost table. It's *measurement* code,
+not orchestration, so it doesn't break the driverless principle. (Feasibility: confirm the transcript
+schema in the sandbox before relying on it.)
+
+---
+
+## Chunk 10 — Scaffolding the conductor + agent-definition files
+
+We built the real product's skeleton, `implement-feature-plugin/`:
+```
+implement-feature-plugin/
+├── .claude-plugin/plugin.json
+├── toolchain/requirements-dev.txt            # pinned dev tools
+├── commands/implement-feature.md             # THIN → loads the skill
+├── skills/implement-feature/
+│   ├── SKILL.md                              # conductor score (Gate 0 full; 1–10 stubbed)
+│   └── references/quality-standards.md        # Definition of Done (single source of truth)
+└── agents/{test-writer,test-reviewer,implementer,verifier,code-reviewer}.md
+```
+
+**Two structural moves:**
+- **Thin command, heavy skill (P21).** A command file is *always* resident in context; a skill body
+  loads *on demand*. So `implement-feature.md` just loads the `implement-feature` skill, whose
+  `SKILL.md` holds the 11-gate score. Keeps context lean when the command isn't in use.
+- **Each isolated gate = an agent-definition file.** `agents/*.md` frontmatter pins **model +
+  effort + tools** (mirroring the `claude-sdlc` shape): `model:`, `effort: high`, `tools:`,
+  `disallowedTools:`. Reviewers/verifier are **read-only** (`disallowedTools: Write, Edit`) — which
+  buys *independence*, not just safety (T14): a critic that could edit might silently hide a problem.
+  The test-writer's body forbids reading `design-internal.md` (the algorithm-blind rule, P15).
+
+Gate 0 is written in full: a **hard-fail preflight**, the **workdir**, and the **editable model plan**.
+Gates 1–10 are one-line stubs we flesh in later chunks.
+
+---
+
+## Q&A — Where do lint/type/concurrency checks live, and how are tools guaranteed?
+
+**Q: The scaffold named pytest + mutation but no linting, type-safety, or concurrency checks — where
+do those run, with what tools, and how do we ensure they're installed?**
+
+**Split the checks by speed (P23):**
+
+| Check | Tool | Runs at |
+|---|---|---|
+| Lint + format | `ruff` | IMPLEMENT inner loop (part of "green") |
+| Type safety | `mypy` | IMPLEMENT inner loop (part of "green") |
+| Unit tests | `pytest` | IMPLEMENT inner loop |
+| Coverage | `pytest-cov` | CODE-REVIEW (vs test-plan threshold) |
+| Mutation kill | `mutmut` | CODE-REVIEW (vs test-plan threshold) |
+| Concurrency | `hypothesis`/`pytest-asyncio`/stress | situational — boundary-driven (P25) |
+
+So the implementer's **inner-loop "green" = pytest + ruff + mypy all clean**; coverage + mutation are
+the reviewer's slow checks. **Type checker = `mypy`** (the conventional production *CI-gate* choice;
+pyright stays an editor complement).
+
+**Guaranteeing the tools (P22):** because the workflow is prescriptive about the **dev container**, we
+(1) pin them in `toolchain/requirements-dev.txt`, (2) install them in the container via
+`postCreateCommand` (`uv pip install --system -r …`), and (3) run a **Gate 0 preflight** that
+hard-fails if any tool is missing — nothing proceeds on a broken environment. The *tool commands* live
+once in `quality-standards.md`; the *threshold numbers* are per-feature and live in Gate 2's test plan
+(P24). **Concurrency** has no single Python tool, so it's mandated by the test plan only when the
+boundary inventory shows the feature is concurrent/async — otherwise skipped with a stated reason.
