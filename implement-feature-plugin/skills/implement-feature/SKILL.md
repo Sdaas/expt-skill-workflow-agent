@@ -15,9 +15,12 @@ downstream gate see a prior gate's raw transcript — only the **curated handoff
 ## Roles & the handoff contract
 
 - **[C] conductor** — this session. Human-facing gates + orchestration.
-- **[I] isolated subagent** — spawned via the Agent/Task tool as a named agent type
-  (`test-writer`, `test-reviewer`, `implementer`, `verifier`, `code-reviewer`), fresh
-  context, pinned model/effort, sees ONLY its curated inbox.
+- **[I] isolated subagent** — spawned via the Agent/Task tool as a named agent type,
+  fresh context, pinned model/effort, sees ONLY its curated inbox. **Plugin agents are
+  namespaced by the plugin name**, so the `subagent_type` is
+  `implement-feature:test-writer`, `implement-feature:test-reviewer`,
+  `implement-feature:implementer`, `implement-feature:verifier`,
+  `implement-feature:code-reviewer` — never the bare name. (Verified empirically.)
 
 **Workdir:** the feature's working directory `<workdir>` (agreed at Gate 0). Its
 handoff store is `<workdir>/handoff/`. Pass the absolute `<workdir>` in every
@@ -27,7 +30,7 @@ subagent brief so each agent can resolve its inbox/outbox paths.
 
 | Gate | Reads (inbox) | Writes (outbox) |
 |---|---|---|
-| WRITE-TESTS [I] | `requirements.md` + `design-interface.md` **only** | `tests/…` + `test-intent.md` |
+| WRITE-TESTS [I] | `requirements.md` + `design-interface.md` + `test-plan.md` (**never** `design-internal.md`) | `tests/…` + `test-intent.md` |
 | TEST-REVIEW [I] | `requirements.md` + full design + tests + `test-intent.md` | `test-review-findings.md` |
 | IMPLEMENT [I] | tests + full design | `src/…` |
 | VERIFY [I] | `requirements.md` (ACs + boundary inventory) | `verify-report.md` |
@@ -44,13 +47,28 @@ folder). Read it, and pass its **absolute path** to every subagent brief so each
 applies the same standard. This workflow is **prescriptive about the dev container** —
 it assumes the pinned toolchain from `toolchain/requirements-dev.txt` is installed.
 
-## Observability (runs alongside every gate)
+## Observability & guardrails (enforced automatically)
 
-- Append one line to `<workdir>/handoff/run-log.jsonl` as each gate completes:
-  `{gate, mode, agent, model, effort, inbox:[...], outbox:[...], result, ts}`.
-- The durable proof is the session transcript; the deterministic Python analyzer
-  (built in a later chunk) parses it for real model/tokens/tool-calls/files-read and
-  audits inbox compliance. Keep the run-log truthful — it is the analyzer's index.
+Two records, plus a hard guard, run alongside every gate:
+
+1. **Gate run-log (conductor-written).** Append one line to
+   `<workdir>/handoff/run-log.jsonl` as each gate completes:
+   `{gate, mode, agent, model, effort, inbox:[...], outbox:[...], result, ts}` — the
+   orchestration story.
+2. **Guard hook audit (automatic).** The plugin ships a **PreToolUse hook**
+   (`hooks/hooks.json` → `hooks/scripts/guard.py`) that fires for the conductor **and
+   every subagent**, appending `{ts, agent_type, agent_id, tool, target}` for every
+   Read/Bash/Grep/Glob — a tamper-evident record of exactly what each agent read.
+3. **Guard hook enforcement (automatic, verified).** The same hook **denies**:
+   - reading `.env` / keys / credentials / ssh keys — for **any** agent (security
+     guardrail); and
+   - reading `design-internal.md` — for the **test-writer** only (algorithm-blind), Read
+     *and* Bash. This is defense-in-depth with the test-writer's own role instructions.
+
+The deterministic analyzer (built at the observability chunk) reads the hook audit
+(stable source of reads) and cross-checks the session transcript for per-agent
+**model + token** figures. See `../../../design/isolation-experiments.md` for the
+validation of all of the above.
 
 ---
 
@@ -152,9 +170,29 @@ code-reviewer:
 - **STOP. Do not write the handoff files or proceed until the human replies APPROVED.**
 - On approval, write the three files and append the run-log entry.
 
-## Gate 3 — WRITE-TESTS  [I] `test-writer`   *(fleshed in Chunk 13)*
-Spawn the algorithm-blind test-writer (inbox = requirements + design-interface only).
-Confirm the suite is **red** for the right reason.
+## Gate 3 — WRITE-TESTS  [I] `test-writer`
+
+Delegate to the isolated, **algorithm-blind** test-writer. Do NOT write the tests
+yourself, and do NOT coach it on the algorithm.
+
+**Spawn it** via the Agent tool with `subagent_type: implement-feature:test-writer`
+(namespaced by plugin; its model/effort/tools are pinned in `agents/test-writer.md`). The
+brief you pass must contain ONLY:
+- the absolute `<workdir>`;
+- its inbox — read **`requirements.md` + `design-interface.md` + `test-plan.md`** and the
+  standards file (`references/quality-standards.md`, by the path you resolve);
+- the hard rule: **do NOT read `design-internal.md` or `src/`** — encode the contract,
+  not an implementation;
+- the task: implement the `test-plan.md` inventory under `<workdir>/tests/`, write
+  `<workdir>/handoff/test-intent.md`, and confirm the suite is red.
+
+**Exit condition (machine, not human):** the returned report must show the suite is
+**RED for the right reason** — tests exist and fail because the implementation is
+*absent*, not from import/collection/syntax errors. If it's red for the wrong reason,
+re-spawn with the correction. When genuinely red, append the run-log entry and proceed.
+
+*(This gate is re-entered from Gate 4 on CHANGES-REQUESTED — re-spawn the writer with the
+findings file added to its inbox.)*
 
 ## Gate 4 — TEST-REVIEW  [I] `test-reviewer`   *(fleshed in Chunk 14)*
 Fresh reviewer checks the tests encode the ACs, are non-tautological, cover the

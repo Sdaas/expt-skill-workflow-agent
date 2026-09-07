@@ -9,6 +9,11 @@
       "name": "toy-greet",
       "source": "./toy-greet-plugin",
       "description": "Toy 2-gate greeting workflow — a learning scaffold for plugin/command mechanics."
+    },
+    {
+      "name": "implement-feature",
+      "source": "./implement-feature-plugin",
+      "description": "Interview-driven, test-first, human-in-the-loop workflow that builds a Python feature via a conductor plus isolated model-pinned subagent gates."
     }
   ]
 }

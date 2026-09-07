@@ -155,7 +155,9 @@
 - ⚠️ **T15 — Plugin runtime-path & namespacing need verifying.** Whether plugin-provided **agents**
   auto-discover from `agents/`, how their names are addressed when spawned, whether `effort:` is
   honored for plugin agents, and how a subagent resolves a skill-relative file path — all confirmed
-  at install-time in the sandbox, not assumed.
+  at install-time in the sandbox, not assumed. **RESOLVED (Chunk 13):** plugin agents auto-discover
+  when installed and are addressed by the **namespaced** `subagent_type` `implement-feature:<agent>`
+  (NOT bare); effort is a frontmatter-only pin. See `LAUNCHING-SUBAGENTS.md`.
 
 ---
 
@@ -180,5 +182,31 @@
   captures the alternatives considered and *why they were rejected*, not just the chosen approach — so
   "why this and not that?" is answerable months later, and the reviewer can check the decision still
   holds. (Extends the interface/internal split, P15, and the file-handoff discipline, P3.)
+
+---
+
+## Launching & isolating subagents (Chunk 13 — validated; see `LAUNCHING-SUBAGENTS.md`)
+- ✅ **P28 — Enforce isolation with a plugin PreToolUse guard hook.** Ship a hook
+  (`hooks/hooks.json` → a script via `${CLAUDE_PLUGIN_ROOT}`) that does three jobs for the conductor
+  AND every subagent: (a) **audit** every Read/Bash to a run-log, (b) **deny secrets/`.env`/keys** for
+  all agents, (c) **deny a specific file for a specific role** by keying on the stdin `agent_type`
+  (e.g. `design-internal.md` for the test-writer). A `deny` decision + exit 2 hard-blocks the call.
+- ✅ **P29 — Defense-in-depth: role instruction + hook.** Keep the "do NOT read X" line in the agent's
+  own brief AND the hook block. The agent usually declines on its own; the hook is the backstop if it
+  doesn't. Two independent gates.
+- ✅ **P30 — Ship reliability-critical config WITH the plugin, not project settings.** A project
+  `.claude/settings.json` PreToolUse hook did NOT fire in headless `claude -p`; the **plugin** hook did
+  (and for subagents). Put must-fire hooks in the plugin (or user settings).
+- ✅ **P31 — Attribute every tool call via `agent_type`/`agent_id`.** The PreToolUse stdin carries the
+  calling agent's namespaced type + id — enough for per-agent rules AND a trustworthy audit trail.
+- ⚠️ **T18 — Effort is frontmatter-only.** No spawn-time override; pin `effort:` in the agent-def (else
+  it inherits the parent). Model CAN be overridden inline; effort cannot.
+- ⚠️ **T19 — Tool-deny ≠ read-confinement.** `disallowedTools: Write` stops writing, not reading. To
+  confine reads use `blockReadsOutsideWorkingDirectories` (all-or-nothing fence) or the hook (P28).
+- ⚠️ **T20 — `isolation: worktree` does not hide in-repo files.** It's a full branch copy; keep a file
+  out of the agent's reach via the fence or the hook, not the worktree.
+- ⚠️ **T21 — Verify runtime behavior; don't trust docs/config.** The docs guessed "bare name" for
+  plugin agents (wrong — namespaced) and were unsure about headless hooks (project=no, plugin=yes).
+  Confirm model, tool blocks, hook firing, and naming empirically before depending on them.
 
 <!-- New patterns appended below as chunks reveal them. -->

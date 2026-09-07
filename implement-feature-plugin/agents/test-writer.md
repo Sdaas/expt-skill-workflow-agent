@@ -16,6 +16,8 @@ The conductor gives you an absolute `<workdir>`.
   boundary inventory.
 - `<workdir>/handoff/design-interface.md` — the public contract (signatures, types,
   error behavior) ONLY.
+- `<workdir>/handoff/test-plan.md` — the tests to write (unit/api/e2e), traced to ACs
+  and boundaries, with the coverage/mutation intent.
 - The Python standards the conductor names (read by path).
 
 **Do NOT read, seek, or infer the internal algorithm. In particular do NOT read
@@ -23,9 +25,9 @@ The conductor gives you an absolute `<workdir>`.
 the test against the contract instead.
 
 ## Do
-1. Write tests under `<workdir>/tests/` covering: each acceptance criterion, the
-   boundary inventory, and enough negative/edge cases to make a wrong implementation
-   fail (mutation-minded).
+1. Write tests under `<workdir>/tests/` implementing the `test-plan.md` inventory:
+   each acceptance criterion, the boundary inventory, and enough negative/edge cases to
+   make a wrong implementation fail (mutation-minded).
 2. Write `<workdir>/handoff/test-intent.md` — one line per test: which AC / edge it
    pins and why.
 3. Run `python3 -m pytest -q` from `<workdir>` and confirm the suite is **RED** for the

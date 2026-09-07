@@ -53,6 +53,18 @@ Design (all four decisions = recommended option, 2026-09-07):
 - **Feasibility caveat:** confirm the transcript JSONL schema (per-message usage + subagent sidechains)
   inside the sandbox before relying on it.
 
+**UPDATE (2026-09-07 — validated, Chunk 13 deviation).** The mechanisms were empirically validated and
+the primary one changed. See `design/isolation-experiments.md` and the root report
+`LAUNCHING-SUBAGENTS.md`. Outcomes: model pinning, tool hard-block, and read-audit are **proven**;
+effort pins via agent-def frontmatter only (no inline override). The **audit + secrets guardrail +
+per-agent blindness** are now enforced by a **plugin PreToolUse guard hook**
+(`implement-feature-plugin/hooks/`) that fires for the conductor *and* every subagent in headless (a
+*project*-settings hook did not) and keys on `agent_type`: it logs every Read/Bash, denies
+secrets/`.env`/keys for ALL agents, and denies `design-internal.md` for the test-writer only. The
+transcript-parse analyzer is retained as a **best-effort** source for per-agent model/tokens (format is
+officially unstable); the hook run-log is the stable audit. Analyzer still to be promoted into the
+plugin at the observability chunk.
+
 ## Chunks
 
 ### Part A — Foundations (concepts, no files)
@@ -96,8 +108,9 @@ Design (all four decisions = recommended option, 2026-09-07):
 16. Gate 6 — VERIFY: isolated; outer loop; drive the real function on ACs + boundaries un-mocked.
 17. Gate 7 — CODE-REVIEW + mutation: isolated whole-diff reviewer; kill-rate gate; bounded loop.
 18. Gates 8–10 — REVIEW-GUIDE → HUMAN REVIEW → COMMIT.
-19. **Observability/analysis** — conductor `run-log.jsonl` + the deterministic Python transcript
-    analyzer (isolation proof + model/token/cost report).
+19. **Observability/analysis** — the **guard hook** (audit log + secrets guardrail + per-agent read
+    denial) is already built + validated in Chunk 13; this chunk promotes the deterministic Python
+    analyzer into the plugin (combine hook run-log for reads + transcript for model/token/cost).
 20. End-to-end dry run on a sample Python feature — inside the sandbox container.
 
 ### Part E — Wrap

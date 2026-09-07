@@ -30,6 +30,8 @@
 - Q&A — Our Gate 1 vs the `grilling` skill
 - Chunk 12 — Gate 2: DESIGN/SPEC + the interface/internal split + test plan
 - Q&A — Why thresholds live in the test plan, and why record alternatives
+- Chunk 13 — Gate 3: WRITE-TESTS + validating & enforcing subagent isolation
+- Q&A — How is subagent isolation actually enforced (the guard hook)?
 
 ---
 
@@ -536,3 +538,46 @@ universal *commands* in `quality-standards.md`, per-feature *numbers* in the tes
 **Q2: Why record rejected alternatives, not just the chosen design?** It's an **ADR** (architecture
 decision record — P27). Two months later, "why this and not that?" is answerable from the file instead
 of lost; and the code-reviewer can check the chosen approach still holds against what was rejected.
+
+---
+
+## Chunk 13 — Gate 3: WRITE-TESTS + validating & enforcing subagent isolation
+
+**Gate 3** is where the conductor first **delegates**: it spawns the algorithm-blind `test-writer` as an
+isolated subagent (`subagent_type: implement-feature:test-writer` — plugin agents are **namespaced**).
+The agent-def file pins its *static identity* (model/effort/tools); the spawn **brief** passes the
+*per-run* specifics (workdir, the ONLY-inbox = requirements + design-interface + test-plan, the "do not
+read design-internal" rule). Exit is a machine condition: the suite must be **red for the right reason**
+(implementation absent), not from import errors.
+
+**The deviation that mattered.** Before building five more gates on the assumption that we can *actually*
+pin a subagent's model/effort/tools and confine its reads, we validated it. The result (full report:
+`LAUNCHING-SUBAGENTS.md`; investigation: `design/isolation-experiments.md`):
+
+- **Model** pinning works and is transcript-verifiable; **tools** allow/deny is a hard block; **effort**
+  pins via agent-def frontmatter only (no inline override).
+- **Reads** can be both **audited** and **confined**. The winning mechanism is a **plugin PreToolUse
+  guard hook** that fires for the conductor *and* every subagent (a *project*-settings hook did **not**
+  fire headless) and keys on the stdin **`agent_type`**.
+- **Bug caught by testing, not docs:** plugin agents are namespaced (`plugin:agent`), not bare.
+
+---
+
+## Q&A — How is subagent isolation actually enforced (the guard hook)?
+
+**Q: We give the test-writer a brief saying "don't read design-internal.md" — but it has a Read tool.
+What actually stops it, and how do we prove what any agent read?**
+
+A single **plugin-shipped PreToolUse hook** (`implement-feature-plugin/hooks/hooks.json` →
+`hooks/scripts/guard.py`), matching `Read|Bash|Grep|Glob`, does three jobs on every call — from the
+conductor *and* every subagent:
+1. **Audit** — appends `{ts, agent_type, agent_id, tool, target}` to a run-log (a stable, attributable
+   record of every read — better than parsing the version-unstable transcript).
+2. **Secrets guardrail** — denies reading `.env`, keys, credentials, `~/.ssh/` — for **all** agents.
+3. **Per-agent blindness** — denies `design-internal.md` for the **test-writer** only (matched on
+   `agent_type`), Read *and* Bash; other critics may read it.
+
+A hook `deny` decision + exit code 2 **hard-blocks** the call. This is **defense-in-depth** with the
+agent's own role instruction (P29): in testing, the test-writer refused on its own before the hook even
+fired. Model/token figures still come from the transcript (best-effort). Key lesson (T21): the docs were
+wrong on agent naming and unsure on headless hooks — we **verified empirically** before depending on it.
