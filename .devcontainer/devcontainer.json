@@ -53,5 +53,14 @@
   // ~/.claude volume owned by root; make it writable by vscode. (2) Install the
   // PINNED /implement-feature toolchain (ruff/mypy/pytest/pytest-cov/mutmut/...) so
   // the workflow's Gate 0 preflight finds every tool. (3) Report versions.
-  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && uv pip install --system -r implement-feature-plugin/toolchain/requirements-dev.txt && python --version && ruff --version && mypy --version && pytest --version && mutmut --version && (claude --version || echo 'claude not on PATH yet (feature installs it)')"
+  //
+  // NOTE: the toolchain install runs under `sudo env "PATH=$PATH"`. `uv pip
+  // install --system` writes into root-owned /usr/local/.../site-packages, so it
+  // needs root; but `uv` lives on vscode's PATH (~/.local/bin), which bare `sudo`
+  // discards — `env "PATH=$PATH"` carries it through so root can still find `uv`.
+  //
+  // mutmut is version-checked via package metadata, NOT `mutmut --version`:
+  // mutmut 3.x eagerly loads its config on ANY invocation and hard-fails when run
+  // outside a project with source to mutate. Metadata is a deterministic liveness check.
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && sudo env \"PATH=$PATH\" uv pip install --system -r implement-feature-plugin/toolchain/requirements-dev.txt && python --version && ruff --version && mypy --version && pytest --version && python -c \"import importlib.metadata as m; print('mutmut', m.version('mutmut'))\" && (claude --version || echo 'claude not on PATH yet (feature installs it)')"
 }
