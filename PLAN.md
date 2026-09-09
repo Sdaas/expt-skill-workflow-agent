@@ -108,10 +108,12 @@ plugin at the observability chunk.
 16. Gate 6 — VERIFY: isolated; outer loop; drive the real function on ACs + boundaries un-mocked.
 17. Gate 7 — CODE-REVIEW + mutation: isolated whole-diff reviewer; kill-rate gate; bounded loop.
 18. Gates 8–10 — REVIEW-GUIDE → HUMAN REVIEW → COMMIT.
-19. **Observability/analysis** — the **guard hook** (audit log + secrets guardrail + per-agent read
+19. ✅ **Observability/analysis** — the **guard hook** (audit log + secrets guardrail + per-agent read
     denial) is already built + validated in Chunk 13; this chunk promotes the deterministic Python
     analyzer into the plugin (combine hook run-log for reads + transcript for model/token/cost).
-20. End-to-end dry run on a sample Python feature — inside the sandbox container.
+    **DONE 2026-09-09**, delivered across session chunks 19 (concept) + 20 (build) — so session-chunk
+    numbers now run one ahead of these PLAN item numbers. See `analyzer/` + P40–P43.
+20. End-to-end dry run on a sample Python feature — inside the sandbox container. **(next)**
 
 ### Part E — Wrap
 21. Package, install, recap concepts → where each showed up in the build.

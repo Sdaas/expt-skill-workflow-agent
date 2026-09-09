@@ -723,5 +723,52 @@ sources a finished run leaves behind and emits a report.
   PATH problem without a global install.
 - **Note (devcontainer regression, 2026-09-09):** the image rebuild (first since the image was deleted)
   hit a **postCreate permission failure** — `uv pip install --system` can't write to root-owned
-  `/usr/local/.../site-packages` as user `vscode` (base-image drift). Container is created/running but
-  the toolchain is not installed. Durable fix pending before we can *run* the analyzer (Chunk 20).
+  `/usr/local/.../site-packages` as user `vscode` (base-image drift). Fixed in Chunk 20 (below).
+
+---
+
+## Chunk 20 — Building the analyzer (+ the devcontainer fix) [build]
+
+**Devcontainer fixes first** (two regressions surfaced by the first image rebuild):
+1. `uv pip install --system` writes root-owned `/usr/local/.../site-packages` but ran as `vscode` →
+   Permission denied. Fix: run it under `sudo env "PATH=$PATH"` — root gets vscode's PATH so it still
+   finds `uv` (in `~/.local/bin`).
+2. `mutmut --version` hard-fails: mutmut 3.x eagerly loads its config on *any* invocation and errors
+   with no source to mutate. Fix: check it via package metadata (`importlib.metadata`) — a deterministic
+   liveness check, not a CLI call. Recreating the container now yields `outcome=success`.
+
+**The analyzer** (`implement-feature-plugin/analyzer/`), built test-first, ruff+mypy clean, 16 tests:
+- `runlog.py` — **load-bearing**; parses `if-runlog.jsonl` → per-agent activity + the 4 isolation
+  verdicts. Zero knowledge of the transcript.
+- `transcript.py` — **best-effort satellite**; per-model tokens (main vs sidechain), a **schema
+  self-check**, and two typed errors: `TranscriptAbsent` (soft) / `TranscriptFormatError` (loud).
+- `report.py` — pure Markdown rendering; `analyze_run.py` — CLI, where the transcript `try/except`
+  **quarantine** lives; `_util.py` — tolerant UTC timestamp parsing.
+- Also fixed `guard.py` to log **UTC/tz-aware** so the run-log and transcript share a clock (the
+  transcript stamps `Z`); the analyzer parses tolerantly as a second line of defense.
+
+**Two logs, two origins (the key mental model):** the **transcript is a Claude Code built-in** (written
+for *every* session, host or container); the **run-log is OUR artifact**, written only when the plugin's
+`guard.py` PreToolUse hook is live — i.e. inside the container during an actual `/implement-feature`
+run. That's why a host session has a transcript but no run-log, and why the run-log (which we control) is
+the load-bearing half.
+
+**Live demo:** we ran the analyzer against *this very session's* transcript — a synthetic run-log stamped
+in the session's time window, and the correlator (option b) correctly locked onto this conversation's
+`.jsonl` out of all sessions in the project dir. Real numbers: 105 opus-4-8 turns in-window (of 140
+total — the window correctly scoped it), ~46% thinking tokens, and 7.5M cache-read vs 210 fresh-input
+tokens (prompt caching carrying the context). Proof of both the correlation logic and the clean
+separation (the real transcript rendered fine beside a toy run-log).
+
+### Q&A captured this chunk
+- **Q: Isn't `if-runlog.jsonl` always created?** No. It is written by our `guard.py` hook (registered by
+  the plugin's `hooks.json`), which only fires when the `implement-feature` plugin is installed and
+  active — i.e. inside the container during a real run. The plugin is never installed into the Mac's
+  global `~/.claude`, so a host session produces **no** run-log. The **transcript**, by contrast, is a
+  Claude Code built-in and always exists.
+- **Q: Why route EVERY unknown transcript failure to the loud "format changed" path — even a bug that
+  isn't format drift?** Asymmetry of errors for a *monitoring* tool: the cardinal sin is silent
+  wrong/missing data (a clean-looking but hollow report — invisible, corrosive to trust). A false-but-loud
+  alarm fails safe: bounded, visible, self-correcting — and the diagnostic still carries the real
+  exception, and the wording is hedged ("*likely* format changed"). So a loud alarm that's occasionally
+  wrong ≫ a silent gap that's invisibly wrong.

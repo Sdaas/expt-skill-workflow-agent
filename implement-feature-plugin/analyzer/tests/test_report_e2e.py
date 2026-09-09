@@ -1,0 +1,59 @@
+"""End-to-end tests for build_report: the transcript quarantine in action."""
+from __future__ import annotations
+
+from analyzer.analyze_run import build_report
+
+from .conftest import assistant_turn, call, write_runlog, write_transcript
+
+SLUG = "proj"
+
+
+def _runlog(tmp_path):
+    return str(write_runlog(tmp_path / "rl.jsonl", [
+        call("implement-feature:test-writer", "Read", "handoff/design-interface.md"),
+        call("implement-feature:implementer", "Write", "src/foo.py"),
+    ]))
+
+
+def test_transcript_present_renders_token_table(tmp_path):
+    runlog = _runlog(tmp_path)
+    projects = tmp_path / "projects"
+    (projects / SLUG).mkdir(parents=True)
+    write_transcript(projects / SLUG / "s.jsonl", [
+        assistant_turn("claude-opus-4-8", i=1),
+        assistant_turn("claude-sonnet-5", sidechain=True, i=2),
+    ])
+    out = build_report(runlog, projects, SLUG)
+    assert "Run-log analysis" in out
+    assert "Token / cost analysis" in out
+    assert "claude-opus-4-8" in out
+    assert "TRANSCRIPT ANALYSIS UNAVAILABLE" not in out
+
+
+def test_missing_transcript_degrades_softly_runlog_intact(tmp_path):
+    runlog = _runlog(tmp_path)
+    projects = tmp_path / "projects"  # never created -> absent
+    out = build_report(runlog, projects, SLUG)
+    assert "Run-log analysis" in out
+    assert "Skipped — no transcript found" in out
+    assert "TRANSCRIPT ANALYSIS UNAVAILABLE" not in out  # soft, not loud
+
+
+def test_transcript_drift_degrades_loudly_runlog_intact(tmp_path):
+    runlog = _runlog(tmp_path)
+    projects = tmp_path / "projects"
+    (projects / SLUG).mkdir(parents=True)
+    # Assistant turns with no model/usage in the window -> format drift.
+    write_transcript(projects / SLUG / "s.jsonl", [
+        assistant_turn("x", i=1, with_usage=False),
+    ])
+    out = build_report(runlog, projects, SLUG)
+    assert "Run-log analysis" in out                       # load-bearing intact
+    assert "TRANSCRIPT ANALYSIS UNAVAILABLE" in out         # loud alarm
+    assert "transcript.py" in out                           # points at the fix
+
+
+def test_no_transcript_flag_skips_cleanly(tmp_path):
+    out = build_report(_runlog(tmp_path), None, None, use_transcript=False)
+    assert "Run-log analysis" in out
+    assert "--no-transcript" in out

@@ -307,4 +307,30 @@
   reports per-gate model/tokens/reads + an isolation-compliance pass/fail. Related: the guard hook
   (P28–P31) is the *preventive* twin; this is the *detective* twin.
 
+## Building the analyzer (Chunk 20)
+- ✅ **P41 — A monitoring/observability tool must FAIL LOUD, never silent.** For a tool whose only
+  value is that you can *believe* it (P40), the cardinal sin is silent wrong/missing data — a
+  clean-looking report that's actually hollow. Bias hard toward screaming on anything unexpected:
+  route even *unknown* failures to the loud alarm (we `except Exception` on the transcript path and
+  send it to the "format changed" message on purpose — ruff BLE001 suppressed with a rationale
+  comment). Rationale = **asymmetry of errors**: a false-but-loud alarm is bounded, visible, and
+  self-correcting; a silent gap is invisible and corrosive. Soften the blow, not the volume: hedge the
+  wording ("*likely* changed") and always print the real exception as a diagnostic breadcrumb.
+- ✅ **P42 — Quarantine an unstable dependency behind a boundary: stable core + best-effort satellite.**
+  When one input is reliable (we own it) and another is officially unstable (someone else's format),
+  split them into independent readers that never import each other, do the load-bearing work first, and
+  wrap the fragile one in `try/except` at a single boundary. Degrade in **two clearly-distinguished
+  modes**, because they mean different things and prompt different actions: **absent** (dependency not
+  present — soft, expected note) vs **drift/broken** (present but unparseable — loud alarm, "update the
+  parser"). Add a **schema self-check** that deliberately raises the loud error when the fields you
+  depend on are gone — converting silently-wrong output into a loud failure. (Here: `runlog.py` is the
+  core, `transcript.py` the satellite; a broken transcript can't dent the run-log report.)
+- ✅ **P43 — Correlate two independent sources by a VALUE, not by coupling their code.** To keep the two
+  readers decoupled, the only thing crossing the boundary is a **time window** (two datetimes) computed
+  from the run-log and handed to the transcript reader — not a shared object, import, or mutable state.
+  Correlation-by-value needs a **shared clock**: we fixed `guard.py` to log **UTC/tz-aware** so it lines
+  up with the transcript's `Z` stamps, and the analyzer parses timestamps tolerantly (assume-UTC on
+  naïve input; ±5-min pad) as a second line of defense. Selecting the transcript by *window overlap*
+  (not "newest file") is robust to stray concurrent sessions.
+
 <!-- New patterns appended below as chunks reveal them. -->

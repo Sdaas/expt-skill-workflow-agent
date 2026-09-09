@@ -23,20 +23,24 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 19 ✅ (2026-09-09, **concept**) — taught the **observability analyzer**:
-  a deterministic Python flight-data-recorder that reads the run-log (`if-runlog.jsonl`) + session
-  transcript and reports per-gate model/tokens/reads + an **isolation-compliance** pass/fail. Key
-  principle **P40 — measure, never orchestrate**: it must be deterministic code (trust: facts not
-  hallucinated summaries) and not an agent (or the "driverless" claim dies). Chunk 18 comprehension
-  check also completed this session (Q1/Q2 ✅; Q3 re-explained).
-- **Next chunk to deliver:** Chunk 20 (Part D) — **BUILD the analyzer** in the plugin (Chunk 19 was the
-  concept; now write the Python). The old prototype `scratchpad/parse_transcript.py` is **gone** (it
-  lived in a prior session's host scratchpad, which evaporated) — rebuild from scratch in the plugin.
-- **⚠️ BLOCKER before we can RUN the analyzer:** the dev-container `postCreate` toolchain install now
-  **fails** — `uv pip install --system` can't write root-owned `/usr/local/.../site-packages` as user
-  `vscode` (base-image drift on the rebuild). Container is created/running but tools aren't installed.
-  Durable fix needed in `.devcontainer/devcontainer.json` (sudo the install / user prefix / chown).
-- **Awaiting from user:** "next" to advance to Chunk 20 (build the analyzer + fix the devcontainer bug).
+- **Last completed chunk:** Chunk 20 ✅ (2026-09-09, **build**) — built the **observability analyzer**
+  `implement-feature-plugin/analyzer/` (test-first, ruff+mypy clean, 16 tests). Two independent readers:
+  `runlog.py` (load-bearing; per-agent activity + 4 isolation verdicts) and `transcript.py` (best-effort
+  satellite; per-model tokens, schema self-check, soft `TranscriptAbsent` / loud `TranscriptFormatError`);
+  `report.py` pure rendering; `analyze_run.py` CLI with the transcript quarantine; `_util.py` tolerant
+  UTC parsing. Also fixed `guard.py` to log UTC/tz-aware (shared clock for correlation) and fixed the
+  **devcontainer postCreate** (sudo-preserve-PATH install + metadata mutmut check → `outcome=success`).
+  Live-demoed on THIS session's transcript (correlation by time-window picked the right `.jsonl`).
+  Patterns added: **P41** fail-loud, **P42** stable-core+quarantined-satellite, **P43** correlate-by-value.
+- **Chunk numbering note:** PLAN item 19 (promote the analyzer) was delivered across **session chunks 19
+  (concept) + 20 (build)**, so session-chunk numbers now run **one ahead** of PLAN item numbers.
+- **Next chunk to deliver:** **end-to-end dry run** (PLAN item 20) — run the real `/implement-feature`
+  on a sample Python feature **inside the sandbox container**, exercising all 11 gates + the guard hook,
+  then run the analyzer on the resulting real `if-runlog.jsonl` + transcript. (Session chunk 21.)
+- **Sandbox status:** container rebuilt + healthy this session (all pinned tools verified). Still to do
+  before the dry run: **reinstall the `implement-feature` plugin** in the container so it picks up this
+  session's `guard.py` UTC change + the analyzer.
+- **Awaiting from user:** "next" to advance to the end-to-end dry run.
 
 ## Resuming the container next session (quick ref)
 > NOTE (2026-09-07 pause): the container **and image were deleted** at session end, but the login
@@ -54,6 +58,13 @@ design-patterns/anti-patterns/traps checklist we apply when building.
    then `/reload-plugins`. See `DEVCONTAINER.md` for full lifecycle.
 
 ## Progress log
+- 2026-09-09 — **Chunk 20 ✅ (build)**: built `implement-feature-plugin/analyzer/` — two decoupled
+  readers (`runlog.py` load-bearing + `transcript.py` best-effort satellite), `report.py`,
+  `analyze_run.py` (transcript quarantine), `_util.py`, `README.md`, 16 tests (ruff+mypy clean in the
+  container). Fixed `guard.py` → UTC/tz-aware run-log ts (shared clock). Fixed devcontainer postCreate
+  (2 regressions: root-write install + mutmut liveness). Live-demoed on this session's transcript.
+  Added P41/P42/P43. Committed (analyzer + guard) — devcontainer fix committed separately (0d658e8).
+  **Next: end-to-end dry run in the sandbox (PLAN item 20).**
 - 2026-09-09 — **Chunk 19 ✅ (concept)**: taught the observability analyzer (deterministic Python; reads
   `if-runlog.jsonl` + transcript; per-gate model/tokens/reads + isolation-compliance pass/fail). Added
   **P40** (measure-never-orchestrate: the one code exception alongside `guard.py`). Also cleared the
@@ -195,8 +206,15 @@ design-patterns/anti-patterns/traps checklist we apply when building.
   - `toolchain/requirements-dev.txt` — pinned dev tools (installed by `.devcontainer` postCreate)
   - `agents/{test-writer,test-reviewer,implementer,verifier,code-reviewer}.md` — model-pinned isolated
     gates (read-only critics via `disallowedTools`; test-writer blind to `design-internal.md`)
-  - `hooks/hooks.json` + `hooks/scripts/guard.py` — PreToolUse guard: audit log + secrets/.env deny
-    (all agents) + `design-internal.md` deny (test-writer only). Validated in the container.
+  - `hooks/hooks.json` + `hooks/scripts/guard.py` — PreToolUse guard: audit log (now **UTC/tz-aware**
+    ts, for analyzer correlation) + secrets/.env deny (all agents) + `design-internal.md` deny
+    (test-writer only) + implementer-can't-write-tests. Validated in the container.
+  - `analyzer/` — the **observability analyzer** (Chunk 20): `runlog.py` (load-bearing: per-agent
+    activity + 4 isolation verdicts from `if-runlog.jsonl`), `transcript.py` (best-effort satellite:
+    per-model tokens, schema self-check, `TranscriptAbsent`/`TranscriptFormatError`), `report.py` (pure
+    Markdown), `analyze_run.py` (CLI + transcript quarantine), `_util.py`, `README.md`, `tests/` (16
+    tests). Run: `python -m analyzer.analyze_run --runlog if-runlog.jsonl`. ruff+mypy clean.
+  - `conftest.py` (plugin root) — puts the plugin dir on sys.path so `analyzer` imports under pytest.
 - `design/isolation-experiments.md` — the isolation investigation (facts, experiments, final posture)
 - `LAUNCHING-SUBAGENTS.md` (repo root) — general guidelines: problems + mechanisms for launching/
   isolating subagents (model, effort, tools, read-confinement, secrets, per-agent access, audit)

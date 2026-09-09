@@ -59,7 +59,11 @@ def main():
     try:
         with open(runlog_path(), "a") as f:
             f.write(json.dumps({
-                "ts": datetime.datetime.now().isoformat(timespec="seconds"),
+                # UTC + tz-aware ("…+00:00") on purpose: the observability analyzer
+                # correlates this run-log against the Claude Code session transcript
+                # (which stamps UTC/"Z"). A naive local time would be off by the tz
+                # offset and break the time-window match. See analyzer/transcript.py.
+                "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
                 "agent_type": agent_type, "agent_id": agent_id,
                 "tool": tool, "target": target[:300],
             }) + "\n")
