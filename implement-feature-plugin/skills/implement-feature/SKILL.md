@@ -336,10 +336,19 @@ The human owns the decision to ship — nothing here is automatic.
 ## Gate 10 — COMMIT  [C]  (Sonnet/Haiku)
 
 **Only after the human replied APPROVED** (the hard rule from Gate 0): commit the change
-with a clear message referencing the feature and its acceptance criteria. Authorship is
-**Soumendra Daas / soumendra.daas@gmail.com**. This is the **only** gate that writes to git
-history. (In a repo with branch/PR conventions: commit on the feature branch, push — the
-pre-push hook runs the tests — and open a PR; merge only on green CI + approval.)
+with a clear message referencing the feature and its acceptance criteria. This is the
+**only** gate that writes to git history.
+
+**Authorship = the repo's configured git identity (P39).** This plugin ships to other users,
+so it **never** hardcodes an author or email. Let `git commit` resolve `user.name` /
+`user.email` from the ambient config (repo-local → global) — **do not** pass `--author` and
+**do not** run `git config` to set one. If no identity is configured, `git commit` fails:
+**STOP and tell the human** to set `user.name`/`user.email` rather than inventing one. For a
+`Co-Authored-By:` trailer, **follow the repo's existing convention** (match recent commits if
+they use one; otherwise omit it) — never a hardcoded name.
+
+(In a repo with branch/PR conventions: commit on the feature branch, push — the pre-push
+hook runs the tests — and open a PR; merge only on green CI + approval.)
 
 Append the final run-log entry. The pipeline (Gates 0–10) is complete.
 

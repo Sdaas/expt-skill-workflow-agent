@@ -281,4 +281,16 @@
   decision, not an oversight. Our old list quietly omitted performance, reliability, and
   observability; "concurrency" was only a slice of reliability.
 
+## Portability — a shipped workflow uses the ambient environment (Chunk 18 discussion, 2026-09-09)
+- ✅ **P39 — A shipped workflow reads identity/config from the *ambient* environment; it never
+  hardcodes the author's.** Gate 10 originally baked in `Soumendra Daas / soumendra.daas@gmail.com`
+  as the commit author — fine for *this repo's own* commits (the `CLAUDE.md` meta-rule), but a
+  **portability leak** in the *product*: a customer running the plugin would get commits attributed
+  to the plugin's author. Fix: let `git commit` resolve `user.name`/`user.email` from ambient
+  config (no `--author`, no `git config`); if none is set, **STOP and surface to the human** rather
+  than inventing one; for a `Co-Authored-By:` trailer, follow the repo's existing convention.
+  General rule: **separate meta-authorship (who builds the tool) from runtime behavior (what the
+  tool does in someone else's environment)** — the tool inherits the host's identity, secrets,
+  toolchain, and conventions, never the builder's.
+
 <!-- New patterns appended below as chunks reveal them. -->
