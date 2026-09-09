@@ -34,13 +34,49 @@ design-patterns/anti-patterns/traps checklist we apply when building.
   Patterns added: **P41** fail-loud, **P42** stable-core+quarantined-satellite, **P43** correlate-by-value.
 - **Chunk numbering note:** PLAN item 19 (promote the analyzer) was delivered across **session chunks 19
   (concept) + 20 (build)**, so session-chunk numbers now run **one ahead** of PLAN item numbers.
-- **Next chunk to deliver:** **end-to-end dry run** (PLAN item 20) — run the real `/implement-feature`
-  on a sample Python feature **inside the sandbox container**, exercising all 11 gates + the guard hook,
-  then run the analyzer on the resulting real `if-runlog.jsonl` + transcript. (Session chunk 21.)
-- **Sandbox status:** container rebuilt + healthy this session (all pinned tools verified). Still to do
-  before the dry run: **reinstall the `implement-feature` plugin** in the container so it picks up this
-  session's `guard.py` UTC change + the analyzer.
-- **Awaiting from user:** "next" to advance to the end-to-end dry run.
+- **Current chunk (IN PROGRESS):** session chunk 21 = **end-to-end dry run** (PLAN item 20) — run the
+  real `/implement-feature` on `parse_duration` **inside the sandbox container**, exercising all 11
+  gates + the guard hook, then run the analyzer on the resulting real `if-runlog.jsonl` + transcript.
+- **⏸️ PAUSED 2026-09-09** mid-chunk-21 (user took a break, before launching the interactive run). See
+  the **"⏸️ RESUME HERE"** block just below for exactly how to pick up.
+
+## ⏸️ RESUME HERE — end-to-end dry run (session chunk 21)
+**Prep already done this session (may need re-verifying if the container was torn down):**
+- Container rebuilt + healthy; all pinned tools verified (ruff/mypy/pytest/mutmut/claude).
+- Marketplace `toy-local-marketplace` added + **`implement-feature` plugin installed** in the container
+  (picks up this session's `guard.py` UTC change + the `analyzer/`).
+- Scratch project created at **`~/test-implement-feature`** in the container: own git repo, one initial
+  commit, ambient git identity set globally (`Soumendra Daas <soumendra.daas@gmail.com>`).
+- Sample feature chosen: **`parse_duration`**.
+
+**To resume:**
+1. On the Mac: `devcontainer up --workspace-folder .` (idempotent; rebuilds if the container is gone —
+   the `devcontainer` CLI is now globally installed at `/opt/homebrew/bin/devcontainer`).
+2. **Re-verify prep if the container was recreated:** `claude plugin list` should show
+   `implement-feature@toy-local-marketplace` enabled; if not, re-run:
+   `claude plugin marketplace add /workspaces/expt-skill-workflow-agent && claude plugin install implement-feature@toy-local-marketplace`.
+   Check `~/test-implement-feature` exists with a git repo + identity; if gone, recreate it (git init,
+   set user.name/email, initial commit).
+3. **Launch the interactive run in a terminal (NOT via the agent's Bash tool — the gates need a TTY):**
+   `devcontainer exec --workspace-folder /Users/sdaas/dev/expt-skill-workflow-agent bash`
+   then inside: `cd ~/test-implement-feature && claude`, then type `/implement-feature`.
+4. **Feature brief to answer the INTERVIEW gate** (paste as the initial request; use for follow-ups):
+   > Build `parse_duration(s: str) -> int` → total **seconds**. Accepts ordered unit chunks h/m/s, each
+   > ≤once, whitespace ignored: `"1h30m"`→5400, `"45s"`→45, `"2h"`→7200, `"1h30m15s"`→5415. Raise
+   > `ValueError` on: empty, no units (`"100"`), unknown unit (`"5d"`), wrong order (`"30m1h"`),
+   > duplicate unit (`"1h2h"`), negative, non-numeric. `"0s"`→0; no artificial max. Pure function, no
+   > I/O, no concurrency (concurrency plan = N/A). Python 3.12, full type hints.
+5. **Gates:** 1 INTERVIEW (answer + approve) → 2 DESIGN (approve, STOP gate) → 3–7 auto (isolated
+   subagents) → 8 REVIEW-GUIDE → 9 HUMAN REVIEW (approve to ship, STOP gate) → 10 COMMIT.
+6. **After the run — analyze it** (back in an agent session, from the host):
+   - Find the real run-log: `~/test-implement-feature/if-runlog.jsonl` (guard writes to
+     `$CLAUDE_PROJECT_DIR/if-runlog.jsonl`; if empty there, check `/tmp/if-runlog.jsonl`).
+   - Run the analyzer **inside the container** against it and the container's transcript:
+     `devcontainer exec --workspace-folder . bash -lc 'cd /workspaces/expt-skill-workflow-agent/implement-feature-plugin && python -m analyzer.analyze_run --runlog ~/test-implement-feature/if-runlog.jsonl --projects-dir ~/.claude/projects --slug=<slug-for-~/test-implement-feature>'`
+     (the slug is that abs path with `/`→`-`). Expect REAL per-gate isolation verdicts + real per-agent
+     model/token split (subagents show as sidechains this time).
+7. Then record docs + commit session chunk 21 (the dry-run findings), and move to PLAN item 21 (wrap:
+   package + concept recap).
 
 ## Resuming the container next session (quick ref)
 > NOTE (2026-09-07 pause): the container **and image were deleted** at session end, but the login
