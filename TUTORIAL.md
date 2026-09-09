@@ -119,11 +119,11 @@ Three mechanisms:
 2. **Gates** — approval checkpoints that decide *whether* advancing is allowed.
 3. **Loops-as-instructions** — "run tests; if any fail, fix and re-run; repeat until all pass."
 
-**Gate = an approval mechanism, NOT a frequency mechanism.** The approver is either:
+**Gate = an approval mechanism** The approver is either:
 - **a human** — "STOP until the user replies APPROVED" (requirements, spec, final review), or
 - **a machine-checkable condition** — "until all tests pass / mutation score ≥ threshold."
 
-Our `/implement-feature` mixes both: human gates where the user wants control; condition gates
+Our `/implement-feature` has both: human gates where the user wants control; condition gates
 inside automated loops so the machine runs unattended until genuinely done.
 
 **Subagents do the heavy sub-jobs; context files carry state; the skill body is the conductor's

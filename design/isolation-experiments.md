@@ -11,7 +11,7 @@
 - **Stage 0:** authoritative docs via the `claude-code-guide` agent.
 - **Stage 1 (host session):** spawned trial subagents via the Agent tool; verified ground
   truth by parsing each subagent's JSONL transcript (`tasks/<id>.output`) with a prototype
-  analyzer (`scratchpad/parse_transcript.py`) — never trusting self-report.
+  analyzer (a throwaway session-scratchpad script, not retained) — never trusting self-report.
 - **Sandbox (dev container, headless `claude -p`):** installed the real plugin; tested
   plugin-agent discovery and read-confinement mechanisms.
 
@@ -87,10 +87,10 @@ Setup: shipped the hook with the plugin; reinstalled in the container; drove hea
    (d) deny Edit/Write to test files for the implementer (test-integrity — added Chunk 15).
 2. **Role discipline** in the agent-def bodies stays (defense-in-depth; it stopped the read
    before the hook in H5).
-3. **Observability analyzer:** the hook run-log is the stable audit source; the transcript
-   parser (`scratchpad/parse_transcript.py`) remains a best-effort source for per-agent
-   **model + token** figures (not covered by the run-log). To be promoted into the plugin at
-   the observability chunk.
+3. **Observability analyzer:** the hook run-log is the stable audit source. A transcript
+   parser is still needed as a best-effort source for per-agent **model + token** figures
+   (not covered by the run-log); the Stage 1 prototype was a throwaway and was not retained.
+   To be built and committed into the plugin at the observability chunk (see issue #4).
 4. Working-dir fence (`blockReadsOutsideWorkingDirectories`) / `isolation: worktree`:
    available as optional extra hardening; not required given the hook.
 
