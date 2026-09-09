@@ -293,4 +293,18 @@
   tool does in someone else's environment)** — the tool inherits the host's identity, secrets,
   toolchain, and conventions, never the builder's.
 
+## Observability — measurement, not orchestration (Chunk 19)
+- ✅ **P40 — An observability layer must MEASURE, never ORCHESTRATE — so keep it deterministic code,
+  not an agent.** The workflow's whole claim is "driverless" (no hand-written orchestration; behavior
+  lives in Markdown). An after-the-fact analyzer is allowed to be real Python *only because* it reads
+  logs and computes facts — it never calls a model, makes a decision, or drives a gate. Two reasons it
+  must not be a summarizer subagent: **(1) trust** — "did the test-writer read the forbidden file?" is
+  a grep-and-count fact; an LLM summarizer is non-deterministic and can *hallucinate a compliance pass*,
+  while deterministic code is repeatable and auditable; **(2) architecture** — an analyzer *agent* is a
+  second AI that *acts inside* the system, silently re-introducing a driver. Rule: **code is permitted
+  when it measures (analyzer) or enforces (guard hook), never when it orchestrates.** It reads the two
+  detective sources a run leaves — the guard hook's `if-runlog.jsonl` and the session transcript — and
+  reports per-gate model/tokens/reads + an isolation-compliance pass/fail. Related: the guard hook
+  (P28–P31) is the *preventive* twin; this is the *detective* twin.
+
 <!-- New patterns appended below as chunks reveal them. -->

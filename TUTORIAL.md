@@ -689,3 +689,39 @@ Three conductor-run gates close the pipeline:
 driverless workflow: human gates bookend (0–2, 9), isolated model-pinned subagents do the
 bias-sensitive middle (3–7), and the guard hook enforces isolation throughout. Cheap models do the
 mechanical gates; strong models do judgement.
+
+---
+
+## Chunk 19 — The observability analyzer (measurement, not orchestration) [concept]
+
+Running the workflow correctly is one thing; **proving after the fact what it actually did** is another.
+Chunk 19 adds a **flight-data-recorder**: a deterministic Python program that reads the two evidence
+sources a finished run leaves behind and emits a report.
+
+- **Sources:** (1) the **run-log** `if-runlog.jsonl` — the guard hook's one-JSONL-line-per-tool-call
+  record (`agent_type`, tool, path); (2) the **session transcript** — Claude Code's own per-turn log
+  (model/effort, token counts, which subagent spawned).
+- **Report:** per-gate model/effort + tokens + tool-call count; what each gate read/wrote; and an
+  **isolation-compliance** pass/fail (did the test-writer *ever* read `design-internal.md`? did the
+  implementer *ever* write a test file?) — the invariants checked *in practice*, not just intent.
+
+**Why it must be deterministic Python, not a summarizer subagent (two-part reason):**
+1. **Trust:** "did the forbidden read happen?" is a grep-and-count *fact*, not a judgement. An LLM
+   summarizer is non-deterministic — it can word it differently each run and can *hallucinate a
+   compliance pass that never happened*. Deterministic code gives the same, auditable answer every time.
+2. **The "driverless" claim survives:** making the analyzer an *agent* would inject a second AI that
+   *acts inside* the system — quietly re-introducing a driver. Keeping it as pure code that runs *after*
+   the run and only *reads* keeps it **measurement, not orchestration** — a black box bolted to the
+   outside, never flying the plane. This is the same exception the architecture already grants
+   `guard.py`: **code is allowed when it measures or enforces, never when it orchestrates** (P40).
+
+### Q&A captured this chunk
+- **Q: What did "the `devcontainer` CLI isn't on the non-interactive PATH; I'll use `npx`" mean?**
+  Interactive terminals load `~/.zshrc`, which puts `devcontainer` on `PATH`; the non-interactive shell
+  Claude's Bash tool uses does not, so the bare command is "not found" (exit 127). `npx @devcontainers/cli`
+  is an `npm` helper that *locates or temporarily downloads* the package and runs it — sidestepping the
+  PATH problem without a global install.
+- **Note (devcontainer regression, 2026-09-09):** the image rebuild (first since the image was deleted)
+  hit a **postCreate permission failure** — `uv pip install --system` can't write to root-owned
+  `/usr/local/.../site-packages` as user `vscode` (base-image drift). Container is created/running but
+  the toolchain is not installed. Durable fix pending before we can *run* the analyzer (Chunk 20).

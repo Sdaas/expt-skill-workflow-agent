@@ -23,18 +23,20 @@ design-patterns/anti-patterns/traps checklist we apply when building.
 
 ## Status
 - **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 18 ✅ (2026-09-07) — fleshed **Gates 8–10** (REVIEW-GUIDE → HUMAN
-  REVIEW → COMMIT), all conductor-run. **The 11-gate conductor score (Gates 0–10) is now COMPLETE** in
-  `SKILL.md` — no stubs left. Gate 8 guides the human's eye (changed files + review order + pointers to
-  all findings files + run-log); Gate 9 STOP-until-APPROVED owns the ship decision; Gate 10 commits
-  (the only git-writing gate, only after APPROVED).
-- **Next chunk to deliver:** Chunk 19 (Part D) — the **observability analyzer**: promote the
-  transcript/run-log parser into the plugin (the "what did this workflow actually do" report — reads +
-  model/tokens per gate + isolation-compliance). Prototype exists at `scratchpad/parse_transcript.py`
-  (host scratchpad — NOT in the repo; will be rebuilt in the plugin).
-- **Awaiting from user:** ⏸️ **SESSION PAUSED 2026-09-07** — user stopping for ~a day. Resume with
-  "read RESUME.md and continue", then deliver Chunk 19. (Chunk 18 comprehension check was not answered;
-  optional to revisit.)
+- **Last completed chunk:** Chunk 19 ✅ (2026-09-09, **concept**) — taught the **observability analyzer**:
+  a deterministic Python flight-data-recorder that reads the run-log (`if-runlog.jsonl`) + session
+  transcript and reports per-gate model/tokens/reads + an **isolation-compliance** pass/fail. Key
+  principle **P40 — measure, never orchestrate**: it must be deterministic code (trust: facts not
+  hallucinated summaries) and not an agent (or the "driverless" claim dies). Chunk 18 comprehension
+  check also completed this session (Q1/Q2 ✅; Q3 re-explained).
+- **Next chunk to deliver:** Chunk 20 (Part D) — **BUILD the analyzer** in the plugin (Chunk 19 was the
+  concept; now write the Python). The old prototype `scratchpad/parse_transcript.py` is **gone** (it
+  lived in a prior session's host scratchpad, which evaporated) — rebuild from scratch in the plugin.
+- **⚠️ BLOCKER before we can RUN the analyzer:** the dev-container `postCreate` toolchain install now
+  **fails** — `uv pip install --system` can't write root-owned `/usr/local/.../site-packages` as user
+  `vscode` (base-image drift on the rebuild). Container is created/running but tools aren't installed.
+  Durable fix needed in `.devcontainer/devcontainer.json` (sudo the install / user prefix / chown).
+- **Awaiting from user:** "next" to advance to Chunk 20 (build the analyzer + fix the devcontainer bug).
 
 ## Resuming the container next session (quick ref)
 > NOTE (2026-09-07 pause): the container **and image were deleted** at session end, but the login
@@ -52,6 +54,11 @@ design-patterns/anti-patterns/traps checklist we apply when building.
    then `/reload-plugins`. See `DEVCONTAINER.md` for full lifecycle.
 
 ## Progress log
+- 2026-09-09 — **Chunk 19 ✅ (concept)**: taught the observability analyzer (deterministic Python; reads
+  `if-runlog.jsonl` + transcript; per-gate model/tokens/reads + isolation-compliance pass/fail). Added
+  **P40** (measure-never-orchestrate: the one code exception alongside `guard.py`). Also cleared the
+  Chunk 18 comprehension check. Discovered the devcontainer `postCreate` permission regression (see
+  Status blocker). Committed. **Next: Chunk 20 = build the analyzer.**
 - 2026-09-09 — **Chunk 17 design revision** (during a walk-through of Chunks 14–18, user-driven):
   fixed a real routing bug in Gate 7 CODE-REVIEW. Coverage/mutation failures were looping back to
   IMPLEMENT, but the implementer is barred from editing tests (guard job #4) → dead-end loop. Now
