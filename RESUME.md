@@ -52,6 +52,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
    then `/reload-plugins`. See `DEVCONTAINER.md` for full lifecycle.
 
 ## Progress log
+- 2026-09-09 — **Chunk 17 design revision** (during a walk-through of Chunks 14–18, user-driven):
+  fixed a real routing bug in Gate 7 CODE-REVIEW. Coverage/mutation failures were looping back to
+  IMPLEMENT, but the implementer is barred from editing tests (guard job #4) → dead-end loop. Now
+  every review finding is **TYPED** (`→IMPLEMENT` for code defects / `→TESTS` for weak-or-missing
+  tests) and the conductor routes each to the right gate (`→TESTS` re-enters WRITE-TESTS +
+  TEST-REVIEW). Kept **one gate / one review pass, two repair paths**. Also enriched the review
+  rubric to the **six `claude-sdlc` quality dimensions** (added performance, reliability,
+  observability). Edited `SKILL.md` Gate 7 + `agents/code-reviewer.md`; added P37/P38. Committed.
 - 2026-09-06 — Plan approved. Created `PLAN.md`, `RESUME.md`, `TUTORIAL.md`.
 - 2026-09-06 — Delivered Chunk 1 (four building blocks).
 - 2026-09-06 — Delivered Chunk 2 (anatomy of a skill).

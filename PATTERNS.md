@@ -258,4 +258,27 @@
   file + the run-log (the observability payoff). Mechanical gates (guide, commit) run on cheap models
   (Sonnet/Haiku); reserve the strong models for judgement (design/reviews).
 
+## Code review — routing revision (Chunk 17 discussion, 2026-09-09)
+- ✅ **P37 — Type each review finding by its repair actor; one review pass can fan out to
+  several fix gates.** A whole-diff reviewer produces findings whose *corrections live in
+  different places*: a correctness/best-practice/reliability defect is fixed in `src/`
+  (→ IMPLEMENT), but a **surviving mutant or a missing-test coverage gap is a *test* weakness**
+  — and the implementer is contractually barred from editing tests (guard-hook job #4), so
+  routing it to IMPLEMENT is a **dead-end loop**. Fix: the reviewer TAGS every finding
+  (`→IMPLEMENT` / `→TESTS`); the conductor routes each tag to the right gate (`→TESTS` re-enters
+  **WRITE-TESTS then TEST-REVIEW**, because new tests must be independently reviewed before
+  re-use). Keep it **one gate / one review pass** (efficiency: one fresh Opus context) but **two
+  repair paths** — don't split into two phases just because the loops differ. Ambiguous case: a
+  surviving mutant that is *unreachable-by-requirement code* is a code defect (→ IMPLEMENT to
+  delete), not a test gap — so routing needs the reviewer's judgement, not a mechanical
+  check-type map. Related: P34 (nested loops), P35 (mutation grades tests), P32 (asymmetric
+  inboxes).
+- ✅ **P38 — Borrow a review rubric from a fixed dimension set, and state N/A explicitly.** The
+  CODE-REVIEW checklist now covers the six `claude-sdlc` quality dimensions (best practices,
+  performance & scale, testing pyramid, security, reliability & resilience, observability &
+  logging) instead of an ad-hoc list. A fixed set stops the reviewer from silently forgetting a
+  dimension; **`N/A — why`** (never a dropped section) makes "doesn't apply here" a recorded
+  decision, not an oversight. Our old list quietly omitted performance, reliability, and
+  observability; "concurrency" was only a slice of reliability.
+
 <!-- New patterns appended below as chunks reveal them. -->

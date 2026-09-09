@@ -132,6 +132,14 @@ plugin at the observability chunk.
    (Added 2026-09-07.)
 
 ## Change-of-direction log
+- 2026-09-09 — **Gate 7 CODE-REVIEW: typed-finding routing + six-dimension rubric.** Fixed a routing
+  bug — coverage/mutation failures looped back to IMPLEMENT, but the implementer cannot edit tests
+  (guard job #4), a dead end. Now each review finding is tagged `→IMPLEMENT` (code defect) or
+  `→TESTS` (weak/missing test → re-enter WRITE-TESTS + TEST-REVIEW); the conductor routes each.
+  Kept **one review pass / one gate, two repair paths** (not a second phase — the pass is shared;
+  only the correction target differs). Also replaced the ad-hoc checklist with the six `claude-sdlc`
+  quality dimensions (best practices, performance, testing pyramid, security, reliability,
+  observability). See P37/P38. (Surfaced during a Chunks 14–18 walk-through.)
 - 2026-09-06 — **Testing strategy decided: dev-container sandbox.** Instead of installing the
   plugin into the host's global `~/.claude`, we test inside a Docker dev container that has its own
   isolated `~/.claude`. Rationale: zero host footprint; disposable clean slate; correct blast radius

@@ -278,24 +278,41 @@ Spawn a fresh, read-only whole-diff reviewer —
 kills anchoring, a stronger model than the implementer kills monoculture. Its inbox:
 `requirements.md` + the full design + the **whole change** (tests + `src/`) + the standards.
 
-**It does two jobs:**
-1. **Judgement review** — correctness & error handling; Python best practices
-   (modularity/cohesion, purity/side-effects, naming, typing, docstrings); the constraints
-   in `requirements.md` honored; whole-diff consistency (no dead/speculative code); and flag
-   **any change under `tests/`** (the implementer must not have altered them).
-2. **The slow checks** (deferred here by split-by-speed):
-   - **Coverage** — `pytest --cov=src` vs the test-plan threshold; call out untested lines.
-   - **Mutation** — `mutmut run` → kill-rate vs the test-plan threshold; **surviving mutants
-     are weak tests** and block APPROVE.
-   - Concurrency-focused item if `requirements.md` flagged it.
+**It reviews across six quality dimensions** (borrowed from the `claude-sdlc` profile
+backbone — scale each to the feature; state **`N/A — why`**, never silently drop one):
+1. **Best practices** — modularity/cohesion, purity/side-effects, naming, typing, docstrings;
+   idiomatic Python; the constraints in `requirements.md` honored.
+2. **Performance & scale** — the measurable signals the design flagged; no accidental
+   O(n²)/N+1 or unbounded growth.
+3. **Testing pyramid** — the **slow checks** live here (deferred by split-by-speed):
+   **coverage** (`pytest --cov=src`) and **mutation** (`mutmut run` → kill-rate) vs the
+   `test-plan.md` thresholds. Surviving mutants = weak tests; call out untested lines.
+4. **Security** — injection/quoting, secrets, filesystem, dependency surface.
+5. **Reliability & resilience** — timeout/retry/backoff/idempotency at every boundary in the
+   inventory; concurrency (races/deadlocks/ordering/cancellation) if `requirements.md` flagged it.
+6. **Observability & logging** — the change is diagnosable (levels, messages) per policy.
 
-It writes `<workdir>/handoff/code-review-findings.md` with a **verdict**:
-- **CHANGES-REQUESTED → back to IMPLEMENT** (fix → re-green → re-VERIFY → re-review).
-  Bounded; surface to the human if it won't converge.
+Plus two cross-cutting checks: **whole-diff consistency** (no dead/speculative code) and
+**test-integrity** (flag **any change under `tests/`** — the implementer must not have altered
+them). Fast checks (`ruff`/`mypy`/unit `pytest`) were gated in IMPLEMENT — confirm they still
+pass; spend the effort on the six dimensions + the slow checks.
+
+It writes `<workdir>/handoff/code-review-findings.md` with **every finding TYPED with a repair
+target**, and a **verdict**:
 - **APPROVE →** append the run-log entry and proceed to the human gates (8–10).
+- **CHANGES-REQUESTED → route each finding by its type (one review pass, two repair paths — P37):**
+  - **`→IMPLEMENT`** — *code* defects (correctness, best-practice, reliability/perf,
+    observability wiring, **dead-code deletion**) → back to **IMPLEMENT (Gate 5)**; the
+    implementer edits `src/` only.
+  - **`→TESTS`** — *weak/missing tests* (surviving mutants, coverage gaps that are missing
+    tests) → back to **WRITE-TESTS (Gate 3)** then **TEST-REVIEW (Gate 4)**. New tests must
+    themselves be independently reviewed before re-use — the implementer is **barred** from
+    editing tests (guard-hook job #4), so routing a test-weakness to IMPLEMENT is a dead end.
+    A surviving mutant that is actually *unreachable-by-requirement code* routes `→IMPLEMENT`
+    to delete it instead.
 
-The fast checks (`ruff`/`mypy`/unit `pytest`) were already gated in IMPLEMENT — confirm they
-still pass, but spend the effort on judgement + the slow checks.
+Findings of both types in one round dispatch to both actors. After repair, re-converge forward
+(→ VERIFY → CODE-REVIEW). **Bound the loop; surface to the human if it won't converge.**
 
 ## Gate 8 — REVIEW-GUIDE  [C]  (Sonnet/Haiku)
 

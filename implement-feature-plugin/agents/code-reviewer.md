@@ -17,22 +17,38 @@ The conductor gives you an absolute `<workdir>`.
 - The full change under `<workdir>/` (tests + `src/`).
 - The Python standards the conductor names (read by path).
 
-## Judge
-- **Correctness & error handling** — edge cases, failure modes, the constraints honored.
-- **Python best practices** — modularity/cohesion, purity/side-effects, naming, typing,
-  docstrings.
-- **Coverage (slow check)** — `python -m pytest --cov=src --cov-report=term-missing`;
-  compare against the coverage threshold in the test plan; call out untested lines.
-- **Mutation (slow check)** — `mutmut run` then `mutmut results`; compare the **kill
-  rate** against the threshold in the test plan; call out surviving mutants as weak tests.
-- **Concurrency (if applicable)** — for concurrent/async features, review for races,
-  deadlocks, ordering, and cancellation (per the concurrency policy in the standards).
-- **Whole-diff view** — cross-file consistency; no dead or speculative code.
+## Judge — six quality dimensions
+Scale each to the feature; if one genuinely does not apply, write **`N/A — why`** — never
+silently drop it.
+1. **Best practices** — correctness & error handling (edge cases, failure modes),
+   modularity/cohesion, purity/side-effects, naming, typing, docstrings; constraints honored.
+2. **Performance & scale** — the measurable signals the design flagged; no accidental
+   O(n²)/N+1 or unbounded growth.
+3. **Testing pyramid (slow checks)** —
+   - **Coverage** — `python -m pytest --cov=src --cov-report=term-missing` vs the coverage
+     threshold in the test plan; call out untested lines.
+   - **Mutation** — `mutmut run` then `mutmut results` vs the kill-rate threshold; call out
+     surviving mutants as weak tests.
+4. **Security** — injection/quoting, secrets, filesystem, dependency surface.
+5. **Reliability & resilience** — timeout/retry/backoff/idempotency at each boundary in the
+   inventory; concurrency (races, deadlocks, ordering, cancellation) if applicable.
+6. **Observability & logging** — the change is diagnosable per the logging policy.
+
+Plus: **whole-diff consistency** (no dead/speculative code) and **test-integrity** (flag any
+change under `tests/` — the implementer must not have altered them).
 
 (Fast checks — `ruff`, `mypy`, unit `pytest` — were already gated in IMPLEMENT; confirm
-they still pass but focus your effort on the slow checks + judgement above.)
+they still pass but focus your effort on the six dimensions + slow checks above.)
 
 ## Return / write
 Write `<workdir>/handoff/code-review-findings.md` with a **verdict** (`APPROVE` or
-`CHANGES-REQUESTED`), the mutation kill rate vs threshold, and specific findings
-(severity + location + fix). Do not edit code yourself.
+`CHANGES-REQUESTED`), the mutation kill rate vs threshold, and specific findings — each with
+**severity + location + fix + a repair-target TAG**:
+- **`→IMPLEMENT`** — code defects (correctness, best-practice, reliability/perf, observability,
+  or dead code to delete). The implementer fixes these in `src/`.
+- **`→TESTS`** — weak/missing tests (surviving mutants, missing-test coverage gaps). These go
+  back to the test-writer + test-reviewer; the implementer is barred from editing tests, so a
+  test-weakness tagged `→IMPLEMENT` would be unfixable. A surviving mutant that is really
+  *unreachable-by-requirement code* is tagged `→IMPLEMENT` (delete), not `→TESTS`.
+
+The conductor routes each tag to the right gate. Do not edit code yourself.
