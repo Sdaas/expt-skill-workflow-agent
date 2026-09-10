@@ -366,7 +366,10 @@
   separate process spawned by the platform; it does **not** inherit env a conductor exports in a tool
   call. To tell `guard.py` the current run's log path (decided at Gate 0, after launch), the conductor
   writes a fixed-path pointer (`.active-run`) the hook reads. The same file doubles as a **single-run
-  lock** (fail fast if it exists). [#10]
+  lock** (fail fast if it exists). Corollary: the hook needs a **fallback** for the windows when the
+  pointer doesn't exist yet (pre-workdir Gate-0 preflight) or no longer exists (post-lock Gate-11
+  report) — it writes `if-runlog.jsonl` to the repo root. Gate 0 must **gitignore that fallback file
+  too**, or a stray audit log leaks into the user's `git add -A`. [#10]
 - ✅ **P50 — Number handoff files in READ ORDER so the directory is self-documenting.** A human browsing
   `handoff/` should see the sequence in the file list itself (`01-requirements.md`,
   `02-design-interface.md`, …). Number by read-sequence (stable under loops: a re-review overwrites its

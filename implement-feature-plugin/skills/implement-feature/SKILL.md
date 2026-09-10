@@ -157,8 +157,11 @@ the session transcript for per-agent **model + token** figures. See
    - `mkdir -p .implement-feature/<run>/handoff/draft`;
    - write `.implement-feature/.active-run` containing the absolute `<artifact_dir>`
      (this is both the guard's run-log pointer **and** the single-run lock);
-   - if `.implement-feature/` is not already in the repo `.gitignore`, **append it**
-     (create `.gitignore` if absent). Artifacts must never be committed.
+   - ensure the repo `.gitignore` ignores **both** `.implement-feature/` **and**
+     `if-runlog.jsonl` (append whichever is missing; create `.gitignore` if absent).
+     Process artifacts must never be committed — `if-runlog.jsonl` is the guard's fallback
+     audit file, written to the repo root before this workdir exists and after the lock is
+     cleared (the pointer only routes to `handoff/run-log.jsonl` while `.active-run` lives).
 5. Present the **per-gate model/effort plan** below. The invariant: **design and every
    review use a higher model (or effort) than implementation.** The human may adjust
    any row.
