@@ -275,7 +275,24 @@ Update this section as work proceeds — it is the resume anchor.
 - [x] **guard + analyzer unit tests green** — 52 passed on the Mac host (pytest-only venv);
   full pinned-toolchain run (ruff/mypy/mutmut) is a container step for Phase 2.
 
-### Phase 2 — First container dry run (`parse_duration`) — ⬜ NOT STARTED
+### Phase 2 — First container dry run (`parse_duration`) — 🔶 RAN; triage in progress 2026-09-10
+- **Ran** the full `/implement-feature` on `parse_duration` in the container against a fresh
+  fixture repo (`~/test-implement-feature`), all gates 0→11, ending in a real commit on
+  `feature/00-parse-duration`. **Invariants held:** isolation (5/5), model pinning
+  (reviews=Opus 5, impl/tests=Sonnet 5, transcript-proven), lock created+cleared, draft→promote,
+  typed →IMPLEMENT/→TESTS repair loop, 304 tests / 100% cov / ruff+mypy clean / mutation 99.2%.
+- **Triage fixes landed this session (branch):**
+  - `#12` reviewer write-detection false-flagged `2>&1` (parsed `&1` as a file) and `/dev/null`
+    → guard + analyzer now drop `&`-fd-dups and allow `/dev/*`. Real run-log now 5/5 green.
+  - `P56` — conductor ran on Sonnet, not the plan's Opus for INTERVIEW/DESIGN (a plugin can't
+    pin its own session model). Added Gate-0 conductor model self-check + warn; corrected the
+    stale "Opus 4.8" table naming (aliases resolve to latest tier). Effort left out of the
+    report by decision (transcript model split suffices).
+- **Open observations (not yet actioned):** (1) scope explosion — the "minimal `->int`" feature
+  became a 3-format `->float` parser (~14 rounds); workflow gave no "smallest viable" pushback.
+  (2) `if-runlog.jsonl` lands in repo root (pre-lock fallback), not in fixture `.gitignore`.
+  (3) workdir `run-log.jsonl` mixes guard-audit + conductor gate-summary line schemas.
+- Unit tests: **58 green on host.** Re-run needed for `parse_duration` green? already green in container.
 
 ### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
 
