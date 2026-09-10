@@ -165,13 +165,13 @@ the session transcript for per-agent **model + token** figures. See
 
    | Gate | Runs as | Model / effort | Why |
    |---|---|---|---|
-   | INTERVIEW | [C] | Opus 4.8, high | requirements reasoning = strong model |
-   | DESIGN / SPEC | [C] | Opus 4.8, high | design = strong model |
-   | WRITE-TESTS | [I] `test-writer` | Sonnet, high | writing tests = implementation |
-   | TEST-REVIEW | [I] `test-reviewer` | Opus 4.8, high | review > implementation |
-   | IMPLEMENT | [I] `implementer` | Sonnet, high | implementation |
-   | VERIFY | [I] `verifier` | Sonnet, high | verification |
-   | CODE-REVIEW | [I] `code-reviewer` | Opus 4.8, high | review > implementation |
+   | INTERVIEW | [C] | Opus 4.8, medium | requirements reasoning = strong model |
+   | DESIGN / SPEC | [C] | Opus 4.8, medium | design = strong model |
+   | WRITE-TESTS | [I] `test-writer` | Sonnet, medium | writing tests = implementation |
+   | TEST-REVIEW | [I] `test-reviewer` | Opus 4.8, medium | review > implementation |
+   | IMPLEMENT | [I] `implementer` | Sonnet, medium | implementation |
+   | VERIFY | [I] `verifier` | Sonnet, medium | verification |
+   | CODE-REVIEW | [I] `code-reviewer` | Opus 4.8, medium | review > implementation |
    | REVIEW-GUIDE / COMMIT | [C] | Sonnet or Haiku | mechanical presentation + commit |
 
    Model IDs: Opus 4.8 = `claude-opus-4-8`; Sonnet 5 = `claude-sonnet-5`;

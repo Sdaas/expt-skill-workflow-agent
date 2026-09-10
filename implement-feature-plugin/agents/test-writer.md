@@ -2,7 +2,7 @@
 name: test-writer
 description: Writes failing pytest tests that encode the requirements (never an implementation). Spawned at the WRITE-TESTS gate of /implement-feature. Algorithm-blind by design.
 model: sonnet
-effort: high
+effort: medium
 tools: Read, Write, Bash
 disallowedTools: Edit
 ---
