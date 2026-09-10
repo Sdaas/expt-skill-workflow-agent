@@ -2,7 +2,13 @@
 
 Parses the Claude Code session transcript JSONL
 (~/.claude/projects/<slug>/*.jsonl) for per-model token usage, split main-thread
-vs subagent (sidechain). This is the ground-truth model/token/cost source.
+vs subagent. This is the ground-truth model/token/cost source.
+
+The isolated gates run as subagents, and Claude Code writes their transcripts NOT
+inline in the main file but under a sibling directory
+(~/.claude/projects/<slug>/<uuid>/subagents/*.jsonl, each with a .meta.json). Reading
+only the top-level file reported "subagents: none" and hid the per-gate model split —
+the analyzer's primary purpose (#15). parse_subagents() now discovers and folds them in.
 
 Its format is officially UNSTABLE (LAUNCHING-SUBAGENTS.md / PLAN.md), so this
 module is treated as fragile and QUARANTINED. It raises exactly two typed
@@ -61,11 +67,28 @@ class ModelUsage:
 
 
 @dataclass
+class SubagentUsage:
+    """One isolated-gate subagent run: its transcript file, the agent it was (from the
+    sibling .meta.json, best-effort), and its per-model token usage."""
+    agent_label: str
+    session_file: str
+    by_model: dict[str, ModelUsage] = field(default_factory=dict)
+
+    @property
+    def total_turns(self) -> int:
+        return sum(m.turns for m in self.by_model.values())
+
+
+@dataclass
 class TranscriptAnalysis:
     session_file: str
     turns_in_window: int
     main: dict[str, ModelUsage] = field(default_factory=dict)       # model -> usage
     sidechain: dict[str, ModelUsage] = field(default_factory=dict)   # model -> usage
+    # Per-subagent breakdown, parsed from <uuid>/subagents/*.jsonl (#15). This is the
+    # per-gate model/token split — the analyzer's primary purpose. Best-effort satellite:
+    # a missing/malformed subagents dir leaves this empty, never raises.
+    subagents: list[SubagentUsage] = field(default_factory=list)
 
 
 def find_transcript(projects_dir: Path, window_start, window_end) -> Path:
@@ -163,7 +186,87 @@ def parse_transcript(path: Path, window_start, window_end) -> TranscriptAnalysis
         # A file that matched by name but has no assistant turns in window.
         raise TranscriptAbsent(f"no assistant turns found in {path.name}")
 
+    # #15: the isolated gates run as subagents, whose transcripts Claude Code writes NOT
+    # inline here but under a sibling dir <uuid>/subagents/*.jsonl. Fold them in so the
+    # per-gate model split is actually reported. Extra-best-effort: never raises.
+    analysis.subagents = parse_subagents(path)
+    for sub in analysis.subagents:
+        for model, mu in sub.by_model.items():
+            agg = analysis.sidechain.get(model)
+            if agg is None:
+                agg = analysis.sidechain[model] = ModelUsage(model=model)
+            agg.turns += mu.turns
+            agg.input_tokens += mu.input_tokens
+            agg.output_tokens += mu.output_tokens
+            agg.cache_read_tokens += mu.cache_read_tokens
+            agg.cache_creation_tokens += mu.cache_creation_tokens
+            agg.thinking_tokens += mu.thinking_tokens
+
     return analysis
+
+
+def _subagents_dir(main_transcript: Path) -> Path:
+    """Claude Code writes subagent transcripts under <dir>/<uuid>/subagents/, where the
+    main transcript is <dir>/<uuid>.jsonl (so the dir is named by the file's stem)."""
+    return main_transcript.parent / main_transcript.stem / "subagents"
+
+
+def _agent_label_from_meta(jsonl: Path) -> str:
+    """Best-effort agent label from the sibling <name>.meta.json. Its schema is not
+    guaranteed, so try several likely keys; fall back to the file stem."""
+    meta = jsonl.with_suffix(".meta.json")
+    try:
+        data = json.loads(meta.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return jsonl.stem
+    if isinstance(data, dict):
+        for key in ("agent_type", "subagent_type", "agentType", "subagentType",
+                    "type", "name", "agent"):
+            val = data.get(key)
+            if isinstance(val, str) and val:
+                return val.split(":", 1)[-1]  # strip any plugin namespace
+    return jsonl.stem
+
+
+def parse_subagents(main_transcript: Path) -> list[SubagentUsage]:
+    """Parse each <uuid>/subagents/*.jsonl into per-model usage, attributed via the
+    sibling .meta.json. EXTRA best-effort: a missing/unreadable/malformed file or dir is
+    skipped silently — it must never break the load-bearing run-log analysis (P42), and a
+    subagent-transcript hiccup should not even mark the main transcript section as drift."""
+    sdir = _subagents_dir(main_transcript)
+    if not sdir.is_dir():
+        return []
+    out: list[SubagentUsage] = []
+    for jsonl in sorted(sdir.glob("*.jsonl")):
+        by_model: dict[str, ModelUsage] = {}
+        try:
+            raw_lines = jsonl.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in raw_lines:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(rec, dict) or rec.get("type") != "assistant":
+                continue
+            msg = rec.get("message") or {}
+            model = msg.get("model")
+            usage = msg.get("usage")
+            if not model or not isinstance(usage, dict):
+                continue
+            mu = by_model.get(model)
+            if mu is None:
+                mu = by_model[model] = ModelUsage(model=model)
+            mu.add(usage)
+        if by_model:  # skip files with no usable assistant turns
+            out.append(SubagentUsage(
+                agent_label=_agent_label_from_meta(jsonl),
+                session_file=str(jsonl), by_model=by_model))
+    return out
 
 
 def _iter_assistant_timestamps(path: Path):

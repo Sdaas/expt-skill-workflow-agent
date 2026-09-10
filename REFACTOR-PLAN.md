@@ -245,7 +245,13 @@ Update this section as work proceeds — it is the resume anchor.
   impl, no mutmut (deferred to Gate 7), probes OK. SKILL Gate 4 updated. analyzer mirrors a
   5th detective check "test-reviewer stayed out of the product tree". **47 tests green.**
   Patterns P44/P45 already present.
-- [ ] #15 — analyzer reads `<uuid>/subagents/*.jsonl`
+- [x] **#15** — analyzer reads subagent transcripts (P51). transcript.py: `parse_subagents()`
+  discovers `<main_stem>/subagents/*.jsonl`, attributes each via sibling `.meta.json`
+  (best-effort key search, namespace stripped), folds per-model usage into the sidechain
+  aggregate, and exposes a per-subagent breakdown. report.py renders the per-gate model
+  split table. Extra-best-effort: missing/malformed subagents dir → empty, never raises.
+  Fixtures added (`write_subagent`). analyzer/README updated (also covers C1/C4/C5 drift:
+  `--workdir`, 5th verdict, tool-split secrets). **52 tests green.**
 - [ ] #13 — mutation kill-rate anchored at 80%
 - [ ] #14 — post-run analysis command + auto-report + pre-Gate-9 breach warning
 - [ ] guard + analyzer unit tests green in container

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from analyzer.analyze_run import build_report
 
-from .conftest import assistant_turn, call, write_runlog, write_transcript
+from .conftest import assistant_turn, call, write_runlog, write_subagent, write_transcript
 
 SLUG = "proj"
 
@@ -28,6 +28,20 @@ def test_transcript_present_renders_token_table(tmp_path):
     assert "Token / cost analysis" in out
     assert "claude-opus-4-8" in out
     assert "TRANSCRIPT ANALYSIS UNAVAILABLE" not in out
+
+
+def test_subagent_breakdown_rendered_in_report(tmp_path):
+    runlog = _runlog(tmp_path)
+    projects = tmp_path / "projects"
+    (projects / SLUG).mkdir(parents=True)
+    main = write_transcript(projects / SLUG / "s.jsonl", [assistant_turn("claude-opus-4-8", i=1)])
+    write_subagent(main, "agent-1", [assistant_turn("claude-opus-5", i=2)],
+                   agent_type="implement-feature:code-reviewer")
+    out = build_report(runlog, projects, SLUG)
+    assert "Per-subagent (isolated gates)" in out
+    assert "code-reviewer" in out
+    assert "claude-opus-5" in out
+    assert "Subagent transcripts found: **1**" in out
 
 
 def test_missing_transcript_degrades_softly_runlog_intact(tmp_path):

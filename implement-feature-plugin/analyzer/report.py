@@ -75,14 +75,34 @@ def _render_usage_table(title: str, buckets: dict[str, ModelUsage]) -> list[str]
     return out
 
 
+def _render_subagent_table(subs: list) -> list[str]:
+    if not subs:
+        return ["_Per-subagent (isolated gates): none found_", ""]
+    out = [
+        "**Per-subagent (isolated gates) — the per-gate model split**", "",
+        "| Subagent | Model | Turns | Input | Output | Thinking |",
+        "|---|---|---:|---:|---:|---:|",
+    ]
+    for sub in sorted(subs, key=lambda s: s.agent_label):
+        for mu in sorted(sub.by_model.values(), key=lambda m: m.model):
+            out.append(
+                f"| {sub.agent_label} | {mu.model} | {mu.turns} | {_fmt(mu.input_tokens)} "
+                f"| {_fmt(mu.output_tokens)} | {_fmt(mu.thinking_tokens)} |"
+            )
+    out.append("")
+    return out
+
+
 def render_transcript(t: TranscriptAnalysis) -> str:
     lines = [
         "## Token / cost analysis (best-effort, from transcript)", "",
         f"- Source: `{t.session_file}`",
-        f"- Assistant turns in window: **{t.turns_in_window}**", "",
+        f"- Assistant turns in window: **{t.turns_in_window}**",
+        f"- Subagent transcripts found: **{len(t.subagents)}**", "",
     ]
     lines += _render_usage_table("Conductor / main thread", t.main)
-    lines += _render_usage_table("Subagents / sidechains", t.sidechain)
+    lines += _render_subagent_table(t.subagents)
+    lines += _render_usage_table("Subagents / sidechains (aggregate by model)", t.sidechain)
     return "\n".join(lines)
 
 

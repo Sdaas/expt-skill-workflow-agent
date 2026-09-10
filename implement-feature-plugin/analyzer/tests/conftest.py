@@ -55,3 +55,17 @@ def write_transcript(path: Path, turns: list[dict], extra_lines: list[dict] | No
         lines.append(json.dumps(e))
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
+
+
+def write_subagent(main_transcript: Path, name: str, turns: list[dict],
+                   agent_type: str | None = None) -> Path:
+    """Create <dir>/<stem>/subagents/<name>.jsonl (+ optional .meta.json), the layout
+    Claude Code uses for isolated-gate subagent transcripts (#15)."""
+    sdir = main_transcript.parent / main_transcript.stem / "subagents"
+    sdir.mkdir(parents=True, exist_ok=True)
+    jsonl = sdir / f"{name}.jsonl"
+    jsonl.write_text("\n".join(json.dumps(t) for t in turns) + "\n", encoding="utf-8")
+    if agent_type is not None:
+        (sdir / f"{name}.meta.json").write_text(json.dumps({"agent_type": agent_type}),
+                                                encoding="utf-8")
+    return jsonl

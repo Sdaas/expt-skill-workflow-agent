@@ -8,17 +8,21 @@ never calls a model, makes a decision, or drives a gate.
 ## Run it
 
 ```bash
-# from implement-feature-plugin/
-python -m analyzer.analyze_run --runlog /path/to/if-runlog.jsonl
+# from implement-feature-plugin/ — primary handle is the run's artifact dir:
+python -m analyzer.analyze_run --workdir /path/to/.implement-feature/<run>/
 
 # options
+--workdir DIR        # the run's artifact dir; run-log = <workdir>/handoff/run-log.jsonl
+--runlog PATH        # explicit run-log path (overrides --workdir)
 --projects-dir DIR   # Claude Code projects dir (default: ~/.claude/projects)
 --slug SLUG          # project subdir under projects-dir (default: derived from cwd)
 --no-transcript      # skip the best-effort token/cost analysis
 ```
 
-The run-log path defaults to `$IF_RUNLOG`, else `$CLAUDE_PROJECT_DIR/if-runlog.jsonl`,
-else `./if-runlog.jsonl` — mirroring `hooks/scripts/guard.py`.
+The run-log is resolved as: `--runlog` if given, else `<workdir>/handoff/run-log.jsonl`
+from `--workdir`, else `$IF_RUNLOG` / `$CLAUDE_PROJECT_DIR/if-runlog.jsonl` / `./if-runlog.jsonl`.
+The analyzer **never reads `.active-run`** — knowing the *active* run is a higher-layer
+concern (that pointer is the conductor↔guard channel, not the analyzer's).
 
 ## Architecture — two independent readers
 
@@ -28,8 +32,9 @@ analyze_run.py            entry point; orchestrates + QUARANTINES the satellite
 │                         Per-agent activity + the 4 isolation verdicts.
 │                         Zero knowledge of the transcript; cannot be broken by it.
 ├── transcript.py         BEST-EFFORT satellite. Parses the Claude Code session
-│                         transcript for per-model tokens (main vs sidechain).
-│                         Format is officially unstable -> fully quarantined.
+│                         transcript for per-model tokens (main thread + each
+│                         subagent under <uuid>/subagents/*.jsonl, attributed via
+│                         .meta.json). Format is officially unstable -> quarantined.
 ├── report.py             Pure Markdown rendering (no I/O, no exception handling).
 └── _util.py              Leaf helpers (tolerant timestamp parsing). Shared, but
                           does NOT couple the two readers to each other.
@@ -48,28 +53,34 @@ inside `try/except` and degrades two ways:
 carrying `message.model` / `message.usage` ⇒ deliberate `TranscriptFormatError`.
 
 ### Transcript↔run selection
-The transcript file is chosen by **time-window correlation** (option *b*): the
-file whose assistant turns most overlap the run-log's `[min ts, max ts]` window
-(padded ±5 min for skew). Robust to stray concurrent sessions. Requires the
+The main transcript file is chosen by **time-window correlation** (option *b*):
+the file whose assistant turns most overlap the run-log's `[min ts, max ts]`
+window (padded ±5 min for skew). Robust to stray concurrent sessions. Requires the
 run-log and transcript to share a clock — `guard.py` logs **UTC/tz-aware** on
-purpose so it lines up with the transcript's `Z` stamps.
+purpose so it lines up with the transcript's `Z` stamps. The **per-subagent**
+transcripts are then read from `<main_stem>/subagents/*.jsonl` beside it (#15) —
+extra-best-effort: a missing/malformed subagents dir yields an empty breakdown and
+never even marks the main section as drift.
 
 ## The isolation verdicts (from the run-log alone)
 1. test-writer never *attempted* to read `design-internal.md`
 2. implementer never *attempted* to write/edit a test file
-3. no agent *attempted* to read secrets/`.env`
-4. distinct expected subagents actually ran
+3. no agent *attempted* to read secrets/`.env` (tool-aware, mirrors `guard.py`)
+4. test-reviewer never *attempted* to write into the product tree (#12)
+5. distinct expected subagents actually ran
 
 > The audit records **attempts**, not outcomes: `guard.py` logs every call
-> (job #1) *before* it may deny it (jobs #2–4). A forbidden entry here means an
-> agent *tried*; the guard blocks it at runtime. Preventive (guard) + detective
-> (analyzer) together. The secret/test-path predicates here **mirror `guard.py`**
-> and must be kept in sync.
+> (job #1) *before* it may deny it. A forbidden entry here means an agent *tried*;
+> the guard blocks it at runtime. Preventive (guard) + detective (analyzer)
+> together. The secret / test-path / reviewer-write predicates here **mirror
+> `guard.py`** and must be kept in sync.
 
 ## Known minor semantics
-`Bash` counts as a "read-ish" tool (so `cat .env` is caught by the secret
-check), so a Bash command target is included in an agent's "files read" count.
-The per-tool breakdown column disambiguates.
+`Bash` counts as a "read-ish" tool, so a Bash command target is included in an
+agent's "files read" count (the per-tool breakdown column disambiguates). Secret
+detection is **tool-split** (#16): a Bash target is the whole command, so it is
+tokenized and only path-like secret tokens are flagged — never a raw substring of
+the command body (which used to false-flag `os.environ`).
 
 ## Tests
 `python -m pytest analyzer/tests -q` — synthetic run-logs + transcripts,
