@@ -19,11 +19,28 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
   reviewer write-confinement; analyzer gained `--workdir`, subagent-transcript reading, and a 5th
   detective check; new `commands/analyze-run.md`. **52 unit tests green on host** (pytest-only).
   Patterns P44–P55 in PATTERNS.md.
-- **NEXT: Phase 2** — first container dry run of `/implement-feature` on `parse_duration` (USER
-  drives the interactive session in a container terminal; this session analyzes the resulting
-  `run-log.jsonl` + transcripts and fixes fallout on the branch). Confirm live in-container: the
-  full pinned toolchain (ruff/mypy/mutmut), the `.claude/settings.json` reference-read allow rule
-  (#5), and install-from-GitHub mechanics.
+- **Phase 2: FIRST DRY RUN DONE + triaged 2026-09-10** — `/implement-feature parse_duration` ran
+  end-to-end in the container (all gates → real commit on `feature/00-parse-duration`). **All
+  invariants held** (isolation 5/5, model pinning Opus5-reviews/Sonnet5-impl transcript-proven,
+  lock lifecycle, draft→promote, typed repair loop, 304 tests / 100% cov / mutation 99.2%). Five
+  triage items handled: two guard false-positives (`2>&1`→`&1`, `/dev/null`), P56 conductor-model
+  self-check, (a) gitignore the `if-runlog.jsonl` fallback, (b) P57 smallest-viable scope anchor.
+  See §5 Phase 2 for detail. **58 unit tests green on host.**
+- **NEXT (resume here): decide Phase 3 (docs) vs a confirming re-run vs Phase 4.** Options:
+  (i) **Phase 3** — write README router + UG + DG + Tutorial (absorb PATTERNS/TUTORIAL/etc. per §3
+  doc-fate map); (ii) a quick **second minimal dry run** to confirm P57 (scope anchor) + P56
+  (model self-check) actually change conductor behavior before the big feature; (iii) **Phase 4** —
+  the file-I/O + async-REST feature + fault-injection dry run. Recommended: (ii) then (iii), or
+  straight to (i) if docs are the priority.
+
+  **Dry-run mechanics to remember (see memory `phase2-dryrun-mechanics`):** the container runs the
+  plugin from a **hard-synced cache** at `~/.claude/plugins/cache/toy-local-marketplace/implement-feature/0.1.0/`
+  — after ANY edit to `implement-feature-plugin/`, `rsync` it into that cache (or do a real
+  `/plugin` reinstall) AND restart the container Claude session (SKILL/agents load at startup; the
+  guard hook reloads per-call). Fixture repo: container `~/test-implement-feature` (ephemeral).
+  Host test harness: recreate `/tmp/if-venv.tmp` (`python3 -m venv` + `pip install pytest`); full
+  toolchain (ruff/mypy/mutmut) only runs in-container. Still to confirm live: install-from-GitHub
+  mechanics, and whether the #5 read-allow rule actually silences the read-tax prompt.
 - **Model note:** Phase 1 was deep interdependent surgery on `SKILL.md` + `guard.py` + `analyzer/` +
   templates — run on a high-capability model / high effort.
 - **Dry runs (Phases 2, 4):** the USER drives the interactive `/implement-feature` in a container
@@ -288,11 +305,14 @@ Update this section as work proceeds — it is the resume anchor.
     pin its own session model). Added Gate-0 conductor model self-check + warn; corrected the
     stale "Opus 4.8" table naming (aliases resolve to latest tier). Effort left out of the
     report by decision (transcript model split suffices).
-- **Open observations (not yet actioned):** (1) scope explosion — the "minimal `->int`" feature
-  became a 3-format `->float` parser (~14 rounds); workflow gave no "smallest viable" pushback.
-  (2) `if-runlog.jsonl` lands in repo root (pre-lock fallback), not in fixture `.gitignore`.
-  (3) workdir `run-log.jsonl` mixes guard-audit + conductor gate-summary line schemas.
-- Unit tests: **58 green on host.** Re-run needed for `parse_duration` green? already green in container.
+- **Observations — actioned:** (1) scope explosion → **fixed (b), P57** smallest-viable anchor at
+  Gate 1 + template. (2) `if-runlog.jsonl` repo-root leak → **fixed (a)** Gate 0 gitignores it, P49.
+- **Observations — logged, NOT fixed (cosmetic, decide later):** (3) workdir `run-log.jsonl` mixes
+  guard-audit lines + conductor gate-summary lines (two schemas in one file since #10 pointed both
+  there); the analyzer tolerates it but counts summary lines as empty-tool conductor calls. Options
+  if we care: separate files again, or have the analyzer skip lines with a `gate` key.
+- **Also noted:** feature 1 became `->float` (not the plan's `->int`) — fine, interview is the spec.
+- Unit tests: **58 green on host**; `parse_duration` suite green in container (304 tests, 100% cov).
 
 ### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
 
