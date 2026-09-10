@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 GUARD = Path(__file__).resolve().parent.parent / "scripts" / "guard.py"
 
 
@@ -121,3 +123,52 @@ def test_implementer_denied_writing_test_file(tmp_path):
     )
     assert rc == 2
     assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+# --- #16: secret detection must not false-positive on Bash command strings --
+
+BENIGN_BASH = [
+    "python3 -c \"import os; print(os.environ.get('FOO'))\"",  # the chunk-21 false positive
+    "python3 -c 'import secrets; print(secrets.token_hex(8))'",
+    "grep -r environ src/",
+    "echo my_api_key=redacted",           # bare identifier, not a file
+    "mutmut run",
+]
+
+
+@pytest.mark.parametrize("cmd", BENIGN_BASH)
+def test_benign_bash_not_flagged_as_secret(cmd, tmp_path):
+    rc, _ = run_guard(call("Bash", cmd, agent_type="implement-feature:test-reviewer"),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0, f"benign command false-denied: {cmd!r}"
+
+
+SECRET_BASH = [
+    "cat .env",
+    "cat /repo/.env.local",
+    "cat ~/.ssh/id_rsa",
+    "cat ./config/credentials.json",
+    "openssl rsa -in server.pem",
+]
+
+
+@pytest.mark.parametrize("cmd", SECRET_BASH)
+def test_real_secret_bash_still_denied(cmd, tmp_path):
+    rc, out = run_guard(call("Bash", cmd, agent_type="implement-feature:test-reviewer"),
+                        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2, f"secret read NOT denied: {cmd!r}"
+    assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_env_dir_component_read_denied(tmp_path):
+    # A path whose component (not basename) is .env is still a secret read.
+    rc, _ = run_guard(call("Read", "/repo/.env/config"),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+
+
+def test_lookalike_dir_not_flagged(tmp_path):
+    # #1: over-broad substring flagged backend.envtools/; component match does not.
+    rc, _ = run_guard(call("Read", "/repo/backend.envtools/app.py"),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0

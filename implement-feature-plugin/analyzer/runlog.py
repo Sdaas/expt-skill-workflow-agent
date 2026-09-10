@@ -24,6 +24,7 @@ from __future__ import annotations
 import datetime as _dt
 import json
 import os
+import shlex
 from dataclasses import dataclass, field
 
 from ._util import parse_ts
@@ -45,19 +46,54 @@ EXPECTED_AGENTS = (
 )
 
 # --- predicates mirrored from guard.py -------------------------------------
-# KEEP IN SYNC with hooks/scripts/guard.py (SECRET_HINTS / looks_secret /
-# is_test_path). The detective checks here must match the preventive rules there,
-# or the report could pass a run the guard would actually have blocked.
-_SECRET_HINTS = (".env", "id_rsa", "id_ed25519", "credentials", ".pem", ".key",
-                 ".ssh/", ".aws/credentials", "secrets.", ".netrc", ".pgpass")
+# KEEP IN SYNC with hooks/scripts/guard.py (looks_secret / is_test_path). The
+# detective checks here must match the preventive rules there, or the report could
+# pass a run the guard would actually have blocked — or, worse (#16), FAIL a run the
+# guard correctly allowed. The secret predicate is PATH-aware and tool-split: for a
+# Bash call the target is the whole command string, so we scan path-like tokens, never
+# substring-match the command body (that flagged `os.environ.get(...)` as a `.env` read).
+_SECRET_EXTS = (".pem", ".key")
+_SECRET_NAMES = ("id_rsa", "id_ed25519", "credentials", ".netrc", ".pgpass")
+_SECRET_FRAGMENTS = (".ssh/", ".aws/credentials")
 
 
-def looks_secret(target: str) -> bool:
-    t = target.lower()
-    base = os.path.basename(t)
-    if base == ".env" or base.startswith(".env") or base.endswith((".pem", ".key")):
+def _is_secret_component(comp: str) -> bool:
+    return (comp == ".env" or comp.startswith(".env.")
+            or comp.startswith("secrets.")
+            or comp.endswith(_SECRET_EXTS)
+            or any(n in comp for n in _SECRET_NAMES))
+
+
+def _is_secret_path(target: str) -> bool:
+    t = target.strip().strip("'\"").lower().replace("\\", "/")
+    if not t:
+        return False
+    if any(frag in t for frag in _SECRET_FRAGMENTS):
         return True
-    return any(h in t for h in _SECRET_HINTS)
+    return any(_is_secret_component(c) for c in t.split("/") if c)
+
+
+def _bash_token_is_secret(token: str) -> bool:
+    t = token.strip().strip("'\"").lower().replace("\\", "/")
+    if not t:
+        return False
+    pathlike = ("/" in t) or t.startswith(".") or t.endswith(_SECRET_EXTS)
+    return pathlike and _is_secret_path(t)
+
+
+def _bash_tokens(command: str) -> list[str]:
+    try:
+        return shlex.split(command, posix=True)
+    except ValueError:
+        return command.split()
+
+
+def looks_secret(tool: str, target: str) -> bool:
+    """Secret-read predicate, split by tool (mirrors guard.py). Bash scans path-like
+    tokens; every other tool's target is a path -> path-component match."""
+    if tool == "Bash":
+        return any(_bash_token_is_secret(tok) for tok in _bash_tokens(target))
+    return _is_secret_path(target)
 
 
 def is_test_path(target: str) -> bool:
@@ -75,6 +111,9 @@ class AgentActivity:
     tool_counts: dict[str, int] = field(default_factory=dict)
     reads: list[str] = field(default_factory=list)   # targets of read-ish calls
     writes: list[str] = field(default_factory=list)   # targets of write-ish calls
+    # (tool, target) for each read-ish call — the tool is needed to mirror guard.py's
+    # tool-split secret detection faithfully (a Bash target is a command, not a path).
+    read_calls: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def label(self) -> str:
@@ -145,6 +184,7 @@ def parse_runlog(path: str) -> RunLogAnalysis:
             act.tool_counts[tool] = act.tool_counts.get(tool, 0) + 1
             if tool in READISH:
                 act.reads.append(target)
+                act.read_calls.append((tool, target))
             elif tool in WRITEISH:
                 act.writes.append(target)
 
@@ -196,10 +236,10 @@ def _run_isolation_checks(agents: dict[str, AgentActivity]) -> list[IsolationChe
         evidence=impl_hits,
     ))
 
-    # 3. no agent must have attempted to read secrets/.env
+    # 3. no agent must have attempted to read secrets/.env (tool-aware, mirrors guard.py)
     secret_hits = [
         f"{a.label}: {t}" for a in agents.values()
-        for t in a.reads if looks_secret(t)
+        for (tool, t) in a.read_calls if looks_secret(tool, t)
     ]
     checks.append(IsolationCheck(
         name="no secret/.env access by any agent",

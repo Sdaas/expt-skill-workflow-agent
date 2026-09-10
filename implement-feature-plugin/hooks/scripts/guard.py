@@ -22,7 +22,7 @@ exported env, hence the pointer file rather than an env var):
   3. today's fallback $CLAUDE_PROJECT_DIR/if-runlog.jsonl, else
   4. /tmp/if-runlog.jsonl.
 """
-import json, os, sys, datetime
+import json, os, sys, datetime, shlex
 
 def _active_run_runlog():
     """Resolve the run-log from the .active-run pointer file, if present/usable."""
@@ -45,16 +45,56 @@ def runlog_path():
                 if os.environ.get("CLAUDE_PROJECT_DIR") else None)
             or "/tmp/if-runlog.jsonl")
 
-# --- secret patterns (basename / path fragments) ---
-SECRET_HINTS = (".env", "id_rsa", "id_ed25519", "credentials", ".pem", ".key",
-                ".ssh/", ".aws/credentials", "secrets.", ".netrc", ".pgpass")
+# --- secret detection (PATH-aware, not raw-substring) ----------------------
+# KEEP IN SYNC with analyzer/runlog.py (the detective mirror of this predicate).
+#
+# #16: the old code substring-matched these hints against the tool's whole target.
+# For a Bash call the target is the ENTIRE command string, so a benign command like
+# `python -c "os.environ.get('X')"` tripped the `.env` hint (".env" is inside
+# "os.environ"). Fix: match on PATH COMPONENTS, and for Bash scan tokens that actually
+# look like file paths — never the raw command body.
+_SECRET_EXTS = (".pem", ".key")                       # matched as a component suffix
+_SECRET_NAMES = ("id_rsa", "id_ed25519", "credentials", ".netrc", ".pgpass")  # in a component
+_SECRET_FRAGMENTS = (".ssh/", ".aws/credentials")     # matched anywhere in the path
 
-def looks_secret(target: str) -> bool:
-    t = target.lower()
-    base = os.path.basename(t)
-    if base == ".env" or base.startswith(".env") or base.endswith((".pem", ".key")):
+def _is_secret_component(comp: str) -> bool:
+    return (comp == ".env" or comp.startswith(".env.")
+            or comp.startswith("secrets.")
+            or comp.endswith(_SECRET_EXTS)
+            or any(n in comp for n in _SECRET_NAMES))
+
+def _is_secret_path(target: str) -> bool:
+    """True if `target`, read as a filesystem path, points at a secret. Over-broad on
+    purpose for real file targets (a false positive just makes an agent ask again)."""
+    t = target.strip().strip("'\"").lower().replace("\\", "/")
+    if not t:
+        return False
+    if any(frag in t for frag in _SECRET_FRAGMENTS):
         return True
-    return any(h in t for h in SECRET_HINTS)
+    return any(_is_secret_component(c) for c in t.split("/") if c)
+
+def _bash_token_is_secret(token: str) -> bool:
+    """Stricter than _is_secret_path: only flag a Bash token that clearly denotes a
+    secret FILE (a path, a dotfile, or a secret extension). A bare identifier like
+    `environ` or `credentials` in a command is NOT a file read — don't false-deny it."""
+    t = token.strip().strip("'\"").lower().replace("\\", "/")
+    if not t:
+        return False
+    pathlike = ("/" in t) or t.startswith(".") or t.endswith(_SECRET_EXTS)
+    return pathlike and _is_secret_path(t)
+
+def _bash_tokens(command: str) -> list[str]:
+    try:
+        return shlex.split(command, posix=True)
+    except ValueError:
+        return command.split()  # unbalanced quotes (common in code heredocs): degrade safely
+
+def looks_secret(tool: str, target: str) -> bool:
+    """Secret-read predicate, split by tool. Bash scans path-like tokens (never the raw
+    command body, #16); every other tool's target IS a path -> path-component match."""
+    if tool == "Bash":
+        return any(_bash_token_is_secret(tok) for tok in _bash_tokens(target))
+    return _is_secret_path(target)
 
 READISH = {"Read", "Bash", "Grep", "Glob"}
 WRITEISH = {"Write", "Edit", "NotebookEdit"}
@@ -102,7 +142,7 @@ def main():
         sys.exit(2)
 
     # 2. SECRETS GUARDRAIL — any agent, read-ish tools
-    if tool in READISH and looks_secret(target):
+    if tool in READISH and looks_secret(tool, target):
         deny(f"Blocked by implement-feature guard: reading secrets/.env is not allowed "
              f"(target: {os.path.basename(target) or target[:60]}).")
 

@@ -232,7 +232,12 @@ Update this section as work proceeds — it is the resume anchor.
   dir (install-time setting) — UG documents it for real users (Phase 3), dry-run fixture
   ships it in `.claude/settings.json` (Phase 2, where the exact glob is verified live).
   SKILL + PATTERNS P53. (Prose-only; no code.)
-- [ ] #16 (+#1) — secret false-positive on Bash strings; drop dead basename block
+- [x] **#16 (+#1)** — path-aware, tool-split secret detection (P54). guard.py: `looks_secret(tool,
+  target)` — Bash tokenizes (shlex, whitespace fallback) and flags only path-like secret tokens;
+  other tools match by path component. Dropped the dead basename block (#1). analyzer/runlog.py:
+  mirrored predicate + `read_calls` tracks `(tool, target)` so the detective check is tool-aware.
+  Regression fixtures: benign `os.environ`/`secrets.token_hex`/etc. pass; real `cat .env` /
+  `~/.ssh/id_rsa` / `credentials.json` / `.pem` denied. **39 tests green.** Pattern P54.
 - [ ] #12 — confine the test-reviewer
 - [ ] #15 — analyzer reads `<uuid>/subagents/*.jsonl`
 - [ ] #13 — mutation kill-rate anchored at 80%

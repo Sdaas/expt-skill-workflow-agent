@@ -79,6 +79,25 @@ def test_any_agent_reading_secrets_is_a_violation(tmp_path):
     assert any(".env" in e for e in c.evidence)
 
 
+def test_benign_bash_environ_is_not_a_secret_violation(tmp_path):
+    # #16: a Bash command mentioning os.environ must NOT flip the verdict to VIOLATION.
+    log = write_runlog(tmp_path / "rl.jsonl", [
+        call("implement-feature:test-reviewer", "Bash",
+             "python3 -c \"import os; print(os.environ.get('X'))\""),
+    ])
+    a = parse_runlog(str(log))
+    assert _check(a, "no secret/.env access by any agent").passed
+    assert a.all_passed
+
+
+def test_real_secret_read_via_bash_is_a_violation(tmp_path):
+    log = write_runlog(tmp_path / "rl.jsonl", [
+        call("implement-feature:test-reviewer", "Bash", "cat ~/.ssh/id_rsa"),
+    ])
+    a = parse_runlog(str(log))
+    assert not _check(a, "no secret/.env access by any agent").passed
+
+
 def test_malformed_lines_are_skipped_and_counted(tmp_path):
     p = tmp_path / "rl.jsonl"
     p.write_text(

@@ -399,4 +399,16 @@
   in the User Guide for real users, and shipped in the dry-run fixture's `.claude/settings.json`.
   (Exact allow-rule glob is confirmed live in the Phase 2 container dry run.) [#5]
 
+- ✅ **P54 — Match secrets on PATH COMPONENTS, not raw command substrings.** A secrets guardrail that
+  substring-matches hints (`.env`, `credentials`, `key`) against a tool's whole target **false-denies
+  Bash**, whose target is the entire command string — `python -c "os.environ.get('X')"` trips `.env`
+  (it's inside `os.environ`). One false hit also flips the analyzer's whole-run verdict to VIOLATION,
+  burying real signal. Fix: split by tool. For **file-target tools** the target *is* a path → match
+  by path component (over-broad is fine: a false positive just makes the agent re-ask). For **Bash**,
+  tokenize (`shlex`, fall back to whitespace on a heredoc's unbalanced quotes) and flag only tokens
+  that clearly denote a secret **file** — a path, a dotfile, or a secret extension — never a bare
+  identifier like `environ`/`credentials`. Guard (preventive) and analyzer (detective) must share the
+  identical predicate, tool included. Corollary (#1): once hints are folded into the generic path
+  match, the old basename special-case is dead code — delete it. [#16, #1]
+
 <!-- New patterns appended below as chunks reveal them. -->
