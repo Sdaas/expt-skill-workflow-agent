@@ -111,11 +111,15 @@ Two records, plus a hard guard, run alongside every gate:
    hook finds the run-log via the `.active-run` pointer the conductor writes at Gate 0.
 3. **Guard hook enforcement (automatic, verified).** The same hook **denies**:
    - reading `.env` / keys / credentials / ssh keys — for **any** agent (security
-     guardrail);
+     guardrail; path-aware + tool-split so a benign Bash command isn't false-denied);
    - reading `03-design-internal.md` — for the **test-writer** only (algorithm-blind), Read
-     *and* Bash; and
+     *and* Bash;
+   - reading anything under `handoff/draft/` — for **any subagent** (unapproved drafts
+     never reach an isolated gate);
    - Edit/Write to any **test file** — for the **implementer** only (test-integrity: it
-     must pass the tests, not change them).
+     must pass the tests, not change them); and
+   - any write outside its `handoff/` outbox + a scratch dir — for the **test-reviewer**
+     (it must not mutate the product tree / build a reference implementation).
    Each is defense-in-depth with the agents' own role instructions.
 
 The deterministic analyzer reads the hook audit (stable source of reads) and cross-checks
