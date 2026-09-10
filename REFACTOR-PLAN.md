@@ -222,7 +222,10 @@ Update this section as work proceeds — it is the resume anchor.
   `--workdir`; `.gitignore` gets `.implement-feature/`. New `hooks/tests/test_guard.py`
   (9 tests). Patterns P47–P51 already in PATTERNS.md (captured ch.21); SKILL refs aligned.
   **25 unit tests green** (16 analyzer + 9 guard).
-- [ ] #8 — triviality assessment + branch recommendation; never commit on main
+- [x] **#8** — Gate 0 branch decision: assess triviality → recommend stay vs new
+  `feature/<NN-slug>`; hard never-on-default invariant (branch required if HEAD is
+  default), human overrides triviality but not the guardrail; Gate 10 re-checks before
+  commit. SKILL Gates 0/10; pattern P52. (Prose-only; no code.)
 - [ ] #5 — kill reference-file read-tax
 - [ ] #16 (+#1) — secret false-positive on Bash strings; drop dead basename block
 - [ ] #12 — confine the test-reviewer

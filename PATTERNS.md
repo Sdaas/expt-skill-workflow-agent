@@ -378,4 +378,12 @@
   was there all along. Don't assume the log layout — inspect the real filesystem the platform produces.
   [#15]
 
+- ✅ **P52 — Never commit on the default branch; assess triviality, recommend, but the guardrail
+  is not overridable.** At Gate 0 the conductor assesses the feature's scope and *recommends* stay
+  (trivial, non-default branch) vs a new `feature/<NN-slug>` branch — the branch name mirrors the
+  run slug so branch↔artifacts correspond. The human may override the *triviality* judgment but
+  **not** the hard invariant: a change is **never** committed on `main`/the default branch, so if
+  HEAD is the default branch a new branch is *required* regardless of triviality. Enforced twice:
+  the Gate 0 STOP-to-confirm and a re-check at Gate 10 before the commit lands. [#8]
+
 <!-- New patterns appended below as chunks reveal them. -->

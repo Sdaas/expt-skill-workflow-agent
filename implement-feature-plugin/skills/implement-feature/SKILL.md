@@ -163,9 +163,24 @@ the session transcript for per-agent **model + token** figures. See
    Model IDs: Opus 4.8 = `claude-opus-4-8`; Sonnet 5 = `claude-sonnet-5`;
    Haiku 4.5 = `claude-haiku-4-5-20251001`.
 
-**STOP. Do not begin any work until the human confirms the code layout and the model plan.**
-Record the confirmed plan (with `<code_root>`, `<tests_root>`, `<artifact_dir>`) into
-`<artifact_dir>/handoff/run-log.jsonl` (first entries).
+6. **Branch decision (never commit on the default branch — P52).** Note the current branch
+   (`git rev-parse --abbrev-ref HEAD`) and the repo's default branch (e.g. `main`/`master`).
+   **Assess the feature's scope** and recommend:
+   - **trivial** change → stay on the current branch (only if it is **not** the default);
+   - **non-trivial** change → a new feature branch `feature/<NN-slug>` (the run slug minus
+     the timestamp, so branch↔artifacts correspond).
+
+   **Hard invariant:** no change — however trivial — may be committed on the **default
+   branch**. **If HEAD is the default branch, a new branch is REQUIRED** regardless of
+   triviality; recommend and default to creating `feature/<NN-slug>`. The human may
+   override the *triviality* call, but **not** the never-on-default rule. On "new branch",
+   the conductor runs `git switch -c feature/<NN-slug>` (or `git checkout -b`) and records
+   the branch in the run-log; the commit later lands there (Gate 10).
+
+**STOP. Do not begin any work until the human confirms the code layout, the model plan,
+and the branch decision.** Record the confirmed plan (with `<code_root>`, `<tests_root>`,
+`<artifact_dir>`, and the working branch) into `<artifact_dir>/handoff/run-log.jsonl`
+(first entries).
 
 ---
 
@@ -413,6 +428,11 @@ artifact" discipline (P47) applies: point the human at the actual files, never o
 with a clear message referencing the feature and its acceptance criteria. This is the
 **only** gate that writes to git history. The gitignored `.implement-feature/` artifact dir
 is **never** part of the commit.
+
+**Re-check the never-on-default invariant (P52) before committing.** Confirm HEAD is not the
+repo's default branch (it should be `feature/<NN-slug>` per the Gate 0 branch decision). **If
+HEAD is somehow the default branch, STOP** — do not commit; create/switch to the feature
+branch first (the human confirmed this at Gate 0).
 
 **Authorship = the repo's configured git identity (P39).** This plugin ships to other users,
 so it **never** hardcodes an author or email. Let `git commit` resolve `user.name` /
