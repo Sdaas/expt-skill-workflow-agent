@@ -113,6 +113,8 @@ def reviewer_write_denied(target: str) -> bool:
     t = target.strip().strip("'\"").replace("\\", "/")
     if not t:
         return False
+    if t.startswith("/dev/"):
+        return False   # /dev/null etc. are the bit bucket, not the product tree
     if "/handoff/" in t or t.startswith("handoff/"):
         return False
     if _is_scratch_path(t):
@@ -133,7 +135,8 @@ def bash_write_targets(command: str) -> list[str]:
             nxt = toks[i + 1]
             targets.append(nxt if not nxt.startswith("-")
                            else (toks[i + 2] if i + 2 < len(toks) else ""))
-    return [t for t in targets if t]
+    # Drop fd-duplication targets (`2>&1`, `>&2`): `&N` is a descriptor, not a file write.
+    return [t for t in targets if t and not t.startswith("&")]
 
 
 # --- data model ------------------------------------------------------------

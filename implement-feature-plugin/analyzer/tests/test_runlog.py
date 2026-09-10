@@ -121,6 +121,17 @@ def test_reviewer_outbox_and_probe_are_clean(tmp_path):
     assert _check(a, "test-reviewer stayed out of the product tree").passed
 
 
+def test_reviewer_fd_dup_redirect_not_a_violation(tmp_path):
+    # #12 regression: `2>&1` is fd duplication, not a write to a file named `&1`.
+    log = write_runlog(tmp_path / "rl.jsonl", [
+        call("implement-feature:test-reviewer", "Bash",
+             "python -m pytest tests/ --collect-only -q 2>&1 | tail -20"),
+    ])
+    a = parse_runlog(str(log))
+    c = _check(a, "test-reviewer stayed out of the product tree")
+    assert c.passed, f"fd-dup flagged as product write: {c.evidence}"
+
+
 def test_malformed_lines_are_skipped_and_counted(tmp_path):
     p = tmp_path / "rl.jsonl"
     p.write_text(

@@ -222,3 +222,17 @@ def test_reviewer_may_run_pytest(tmp_path):
     rc, _ = run_guard(call("Bash", "python -m pytest -q", agent_type=REVIEWER),
                       env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
     assert rc == 0
+
+
+@pytest.mark.parametrize("cmd", [
+    "python -m pytest tests/ --collect-only -q 2>&1 | tail -20",   # the Phase-2 false positive
+    "ruff check . 2>&1",
+    "python -c 'x=1' 1>&2",
+    "python -m pytest -q 2>/dev/null",                              # bit bucket, not product tree
+    "cat pyproject.toml > /dev/null",
+])
+def test_reviewer_benign_redirects_not_flagged(cmd, tmp_path):
+    # `2>&1`/`1>&2` are fd dups; `/dev/null` is the bit bucket — none is a product write (#12 regression).
+    rc, _ = run_guard(call("Bash", cmd, agent_type=REVIEWER),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0, f"benign redirect false-denied: {cmd!r}"
