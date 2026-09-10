@@ -252,7 +252,9 @@ consumed by test-writer, test-reviewer, and code-reviewer:
 - Enumerated tests (**unit / api / e2e**), each traced to an **AC or a boundary**;
   cover happy path, edges, negatives, and every boundary in the inventory.
 - **Coverage threshold** and **mutation kill-rate threshold** (the numbers Gate 7
-  enforces via `pytest-cov` / `mutmut`).
+  enforces via `pytest-cov` / `mutmut`). **Anchor the mutation kill-rate at 80%** (P46) —
+  start there and **justify any deviation in the plan**; do not free-pick. **Surface the
+  chosen threshold + justification prominently at approval** so the human can veto it.
 - If `01-requirements.md`'s boundary inventory flags the feature concurrent/async, the plan
   MUST include the property/stress/async tests + concurrency review focus (per
   `references/quality-standards.md`); otherwise state "No concurrency surface — skipped."

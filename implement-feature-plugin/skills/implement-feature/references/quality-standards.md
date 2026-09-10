@@ -44,6 +44,17 @@ The implementer may NOT exit its loop until ALL of:
 - **Mutation kill rate** ≥ the threshold set in the test plan (`mutmut`); surviving
   mutants are reported as weak tests.
 
+### Mutation kill-rate: default anchor 80% (justify any deviation)
+The kill-rate stays **per-feature** (a 20-line pure function can reach 95%; a 2k-line
+module can't), but it must not be free-picked — an agent handed a metric with no anchor
+drifts (P46). So:
+- **Start from 80%.** The DESIGN gate sets the test plan's kill-rate to **80% by default**.
+- **Justify any deviation, in the test plan.** *Raise* it (e.g. 90–95%) for a small or
+  safety-critical pure function; *lower* it only with a stated reason (large surface,
+  hard-to-kill equivalent mutants). Record the rationale next to the number.
+- **Surface it at DESIGN approval** so the human sees and can veto the chosen threshold
+  (the human now reviews the real `04-test-plan.md`, where the number + justification live).
+
 ## Concurrency policy (situational — driven by the boundary inventory)
 - If the feature is concurrent/async (threads, async I/O, shared mutable state), the
   Gate 2 **test plan MUST** include property-based + stress tests (`hypothesis`,

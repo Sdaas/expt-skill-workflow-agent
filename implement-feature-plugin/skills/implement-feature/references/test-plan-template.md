@@ -21,8 +21,11 @@ negative/error cases, and every boundary in the inventory.
   exclusions.
 
 ## Mutation target
-- **Mutation kill rate ≥ <M>%** (`mutmut`). Surviving mutants above this are treated as
-  weak tests and block APPROVE at CODE-REVIEW.
+- **Mutation kill rate ≥ <M>%** (`mutmut`). **Default anchor: 80%** — start there and
+  **justify any deviation right here**: raise for a small/safety-critical pure function,
+  lower only with a stated reason (large surface, equivalent mutants). Surviving mutants
+  below the chosen rate are treated as weak tests and block APPROVE at CODE-REVIEW.
+  - Chosen: **<M>%** — Justification: <why this differs from 80%, or "default 80%">.
 
 ## Concurrency plan (fill only if the feature is concurrent/async)
 - If the boundary inventory flags threads / async I/O / shared mutable state: list the

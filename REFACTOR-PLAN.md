@@ -252,7 +252,11 @@ Update this section as work proceeds — it is the resume anchor.
   split table. Extra-best-effort: missing/malformed subagents dir → empty, never raises.
   Fixtures added (`write_subagent`). analyzer/README updated (also covers C1/C4/C5 drift:
   `--workdir`, 5th verdict, tool-split secrets). **52 tests green.**
-- [ ] #13 — mutation kill-rate anchored at 80%
+- [x] **#13** — mutation kill-rate anchored at 80% (P46). quality-standards.md documents
+  the default anchor + deviation-justification + surface-at-approval; test-plan-template
+  replaces bare `<M>%` with the 80% anchor + a justification line; SKILL Gate 2 tells the
+  design agent to start at 80%, justify deviations, and surface the number for human veto.
+  (Prose-only; no code.)
 - [ ] #14 — post-run analysis command + auto-report + pre-Gate-9 breach warning
 - [ ] guard + analyzer unit tests green in container
 
