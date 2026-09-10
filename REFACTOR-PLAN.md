@@ -1,10 +1,34 @@
 # Refactor Plan — Tutorial repo → shippable `implement-feature` plugin
 
-**Status:** awaiting approval. **Branch:** `refactor/shippable-plugin` (created in Phase 0).
-**Authorship:** Soumendra Daas <soumendra.daas@gmail.com>.
+**Branch:** `refactor/shippable-plugin`. **Authorship:** Soumendra Daas <soumendra.daas@gmail.com>.
 
-This plan is the source of truth for the refactor. It is safe to relaunch a session after this file
-exists — read this file to resume.
+This plan is the source of truth AND the resume pointer for the refactor. Execution model is
+**phase-boundary relaunches** (grilling decision Q11-B, 2026-09-10): one session per phase, each reads
+this file, executes its phase, updates §5, commits. Between phases the user relaunches a fresh session.
+
+---
+
+## 0. CURRENT STATE — read this first on resume
+
+- **Phase 0: DONE** (branch created, CLAUDE.md retired on `main`, scratch dir deleted, issues triaged
+  & labelled, progress tracker added).
+- **NEXT: Phase 1** — the 9 pile-1 code fixes, dependency-ordered, starting with **#10 (workdir
+  redesign)**. See §4 Phase 1 and §5 for the running checklist.
+- **Model note:** Phase 1 is deep interdependent surgery on `SKILL.md` + `guard.py` + `analyzer/` +
+  templates — run it on a high-capability model / high effort.
+- **Dry runs (Phases 2, 4):** the USER drives the interactive `/implement-feature` in a container
+  terminal (TTY constraint); the session only analyses the resulting `if-runlog.jsonl` + transcripts
+  and fixes fallout on the branch.
+
+### Resume prompt (paste at the start of each new session)
+> Read `REFACTOR-PLAN.md` (on branch `refactor/shippable-plugin`) — §0 CURRENT STATE and §5 progress
+> log tell you where we are. Continue with the next unstarted phase. Follow the phased plan; commit
+> per logical unit; update §5 as you go. Do not revert to the old paced-tutorial workflow.
+
+### Still-open plan decisions (defaults chosen; override anytime)
+- **docs/ layout:** `docs/user-guide.md`, `docs/developer-guide.md`, `docs/tutorial.md` (default).
+- **All fixes before docs:** yes — Phase 1+2 precede Phase 3 (taken as approved: "plan looks good").
+- **#14 in v1:** folded in (default; easiest single item to cut for a leaner v1).
 
 ---
 
@@ -17,8 +41,9 @@ README that routes **three audiences**:
 - **(a) User Guide (UG)** — install from GitHub, Python-only setup + toolchain prerequisite, how to run,
   FAQ. Targets a real user on their **own machine / own repo**.
 - **(b) Developer Guide (DG)** — architecture, gate design, agent-def files, the guard hook, the
-  analyzer, **ADRs**, **design principles** (from `PATTERNS.md`), and the **testing / dry-run
-  methodology**. Targets someone improving the plugin.
+  analyzer, **ADRs**, and the **testing / dry-run methodology**. Targets someone improving the plugin.
+  The **design-principles section absorbs ALL of `PATTERNS.md`** — not just the best-practice patterns
+  but the **anti-patterns and traps** too (what NOT to do, and the mistakes that bit us).
 - **(c) Tutorial** — concepts (plugin vs command vs skill vs workflow) and **subagent isolation**
   (folds in `LAUNCHING-SUBAGENTS.md` + `design/isolation-experiments.md`), with `toy-greet-plugin/` as
   the runnable example. Reading order for a new dev: **c → b → a**.
@@ -29,9 +54,11 @@ README that routes **three audiences**:
 - Run `/implement-feature` through **all gates** on a **bootstrapped Python repo**, ending in a **real
   commit**, with **no manual workarounds** (so #11 and #10 must already be fixed).
 - **Two features**, to exercise more than the happy path:
-  1. `parse_duration(s) -> int` (pure function), and
-  2. one feature with a **real boundary** (file I/O or async) — stresses the un-mocked VERIFY gate and
-     the concurrency policy.
+  1. `parse_duration(s) -> int` (pure function) — the minimal happy path.
+  2. A feature that does **file I/O + an async REST call** to a well-known public JSON API. The dry run
+     then **injects faults** — network timeouts, 5xx responses — so the un-mocked VERIFY gate, the
+     resiliency/reliability review dimension, and the concurrency policy all get genuinely exercised,
+     not just asserted.
 - The container is **our** test harness. A **real user runs on their own machine against their own
   repo** — which is exactly why branch-safety (#8) is a pile-1 blocker.
 
@@ -163,7 +190,8 @@ toy-greet-plugin/              # tutorial example
 - Delete/absorb per the doc-fate map. Resolve **#3** implicitly.
 
 ### Phase 4 — Second feature + final verification
-- Add the **boundary/async** feature; run its full dry run in the container to green.
+- Add the **file-I/O + async-REST** feature; run its full dry run in the container to green, including
+  the **fault-injection** pass (timeouts, 5xx) against the un-mocked VERIFY gate.
 - **Two green dry runs = done.**
 
 ### Phase 5 — Merge prep
@@ -173,7 +201,41 @@ toy-greet-plugin/              # tutorial example
 
 ---
 
-## 5. Open risks / watch-items
+## 5. Progress log / phase checklist
+
+Update this section as work proceeds — it is the resume anchor.
+
+### Phase 0 — Branch, safety, hygiene — ✅ DONE 2026-09-10
+- [x] Branch `refactor/shippable-plugin` created off `main`.
+- [x] `CLAUDE.md` rewritten on `main` (paced-tutorial rules retired; points to branch + this plan). Commit `f44700a`.
+- [x] `REFACTOR-PLAN.md` written + committed.
+- [x] `test-toy-greet-plugin/` deleted.
+- [x] Issue hygiene: created auto-install(v1.1) issue #19; labelled backlog (#9, #18, #19 → `v1.1`/`v2`); closed #4 (analyzer built ch.20; residual tracked in #15); #2 noted moot.
+- [x] Two plan additions folded in: DG absorbs PATTERNS anti-patterns+traps (not just best practice); feature #2 = file-I/O + async-REST + fault injection.
+
+### Phase 1 — Pile-1 fixes — ⬜ NOT STARTED
+- [ ] #10 + #17 — per-feature artifact/handoff dir, numbered files, single-run lock
+- [ ] #11 — STOP gates present the real artifact (draft → revise → promote)
+- [ ] #8 — triviality assessment + branch recommendation; never commit on main
+- [ ] #5 — kill reference-file read-tax
+- [ ] #16 (+#1) — secret false-positive on Bash strings; drop dead basename block
+- [ ] #12 — confine the test-reviewer
+- [ ] #15 — analyzer reads `<uuid>/subagents/*.jsonl`
+- [ ] #13 — mutation kill-rate anchored at 80%
+- [ ] #14 — post-run analysis command + auto-report + pre-Gate-9 breach warning
+- [ ] guard + analyzer unit tests green in container
+
+### Phase 2 — First container dry run (`parse_duration`) — ⬜ NOT STARTED
+
+### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
+
+### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — ⬜ NOT STARTED
+
+### Phase 5 — Merge prep + merge to `main` — ⬜ NOT STARTED
+
+---
+
+## 6. Open risks / watch-items
 - **Toolchain on a real machine** (Q10): v1 documents manual install + relies on Gate-0 hard-fail with
   an actionable message. Auto-install is v1.1.
 - **#10 workdir redesign** is the riskiest fix — it touches the handoff contract every gate depends on.
