@@ -435,6 +435,15 @@ rather than re-reviewing everything from scratch.
 
 ## Gate 9 — HUMAN REVIEW  [C] ↔ human   (approval gate — the ship decision)
 
+**Pre-approval breach check (informational — P40).** Before asking for approval, run the
+analyzer's fast isolation pass over this run and summarize it for the human:
+`PYTHONPATH="<plugin_root>" python3 -m analyzer.analyze_run --workdir <artifact_dir> --no-transcript`
+(the guard's audit log is complete by now, so the verdicts are final). Report the isolation
+verdicts. **If any verdict is a VIOLATION, surface it prominently and require the human's
+explicit acknowledgement** before they approve — a breach must not ship silently. The
+analyzer **never blocks**; real-time blocking is the guard hook's job and this only confirms
+after the fact.
+
 **STOP. Do not commit. Wait for the human to review and reply APPROVED.** If the human
 requests changes, route them to the relevant gate (e.g. a logic fix → IMPLEMENT; a missing
 test → back through WRITE-TESTS/TEST-REVIEW), then re-run forward and re-present at Gate 8.
@@ -466,7 +475,22 @@ hook runs the tests — and open a PR; merge only on green CI + approval.)
 
 Append the final run-log entry. **Then, only after the commit succeeds, clear the lock:**
 delete `$CLAUDE_PROJECT_DIR/.implement-feature/.active-run`. (An interrupted COMMIT
-correctly still looks active until the commit lands.) The pipeline (Gates 0–10) is complete.
+correctly still looks active until the commit lands.)
+
+## Gate 11 — REPORT  [C]  (auto, measure-only — P40)
+
+**Auto-run the analyzer** over the just-finished run and present the compliance report — no
+manual step. The artifact dir persists (gitignored), so this reads it directly:
+`PYTHONPATH="<plugin_root>" python3 -m analyzer.analyze_run --workdir <artifact_dir>`
+(full report incl. the transcript token pass this time). Present:
+- **Isolation compliance** — the guard's invariants held across all gates.
+- **Per-gate model split** — each isolated gate's pinned model + tokens (the evidence for
+  "reviews ran on a higher model than implementation").
+- **Per-agent activity** + token/cost totals.
+
+The analyzer only **measures** — it never blocks or edits. (Any past run can be re-analyzed
+later with the standalone `/implement-feature:analyze-run` command.) The pipeline (Gates
+0–11) is complete.
 
 ---
 

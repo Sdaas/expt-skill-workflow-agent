@@ -411,4 +411,14 @@
   identical predicate, tool included. Corollary (#1): once hints are folded into the generic path
   match, the old basename special-case is dead code — delete it. [#16, #1]
 
+- ✅ **P55 — Auto-surface observability; measure before shipping, but never let the measurer
+  block.** Observability that exists only as an ad-hoc `python -m …` invocation goes unused. Wire it
+  in: **auto-run** the analyzer after the run (Gate 11 REPORT) and again — its fast isolation pass —
+  **before the human approval gate** (Gate 9), so a breach (e.g. an agent that tried to read
+  `design-internal`, a reviewer write into the product tree) is surfaced for explicit human
+  acknowledgement *before* they ship. Also ship a **standalone command** so any past run re-analyzes
+  from its artifact dir. Keep **P40 intact**: the analyzer only measures — it reports a VIOLATION but
+  never auto-blocks or edits; real-time blocking stays the guard hook's job. Feasible because the
+  guard writes the audit log *per tool call*, so the log is complete by Gate 9. [#14]
+
 <!-- New patterns appended below as chunks reveal them. -->

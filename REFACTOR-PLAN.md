@@ -12,10 +12,20 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
 
 - **Phase 0: DONE** (branch created, CLAUDE.md retired on `main`, scratch dir deleted, issues triaged
   & labelled, progress tracker added).
-- **NEXT: Phase 1** — the 9 pile-1 code fixes, dependency-ordered, starting with **#10 (workdir
-  redesign)**. See §4 Phase 1 and §5 for the running checklist.
-- **Model note:** Phase 1 is deep interdependent surgery on `SKILL.md` + `guard.py` + `analyzer/` +
-  templates — run it on a high-capability model / high effort.
+- **Phase 1: DONE 2026-09-10** — all 9 pile-1 fixes landed across 8 logical commits
+  (#10+#17+#11, #8, #5, #16+#1, #12, #15, #13, #14). SKILL.md rewritten for the new artifact-dir /
+  numbered-handoff / draft→promote / branch-decision / analytical-review workflow; guard.py gained
+  pointer-file run-log resolution, draft-confinement, path-aware tool-split secret detection, and
+  reviewer write-confinement; analyzer gained `--workdir`, subagent-transcript reading, and a 5th
+  detective check; new `commands/analyze-run.md`. **52 unit tests green on host** (pytest-only).
+  Patterns P44–P55 in PATTERNS.md.
+- **NEXT: Phase 2** — first container dry run of `/implement-feature` on `parse_duration` (USER
+  drives the interactive session in a container terminal; this session analyzes the resulting
+  `run-log.jsonl` + transcripts and fixes fallout on the branch). Confirm live in-container: the
+  full pinned toolchain (ruff/mypy/mutmut), the `.claude/settings.json` reference-read allow rule
+  (#5), and install-from-GitHub mechanics.
+- **Model note:** Phase 1 was deep interdependent surgery on `SKILL.md` + `guard.py` + `analyzer/` +
+  templates — run on a high-capability model / high effort.
 - **Dry runs (Phases 2, 4):** the USER drives the interactive `/implement-feature` in a container
   terminal (TTY constraint); the session only analyses the resulting `if-runlog.jsonl` + transcripts
   and fixes fallout on the branch.
@@ -213,7 +223,7 @@ Update this section as work proceeds — it is the resume anchor.
 - [x] Issue hygiene: created auto-install(v1.1) issue #19; labelled backlog (#9, #18, #19 → `v1.1`/`v2`); closed #4 (analyzer built ch.20; residual tracked in #15); #2 noted moot.
 - [x] Two plan additions folded in: DG absorbs PATTERNS anti-patterns+traps (not just best practice); feature #2 = file-I/O + async-REST + fault injection.
 
-### Phase 1 — Pile-1 fixes — 🔶 IN PROGRESS
+### Phase 1 — Pile-1 fixes — ✅ DONE 2026-09-10
 - [x] **#10 + #17 + #11** — per-feature artifact dir (`.implement-feature/<run>/`), numbered
   handoff files (`01-…`–`08-…`), `.active-run` pointer+lock, code-root/tests-root split,
   draft→promote review loop. SKILL.md rewritten; guard.py (pointer-file run-log resolution +
@@ -257,8 +267,13 @@ Update this section as work proceeds — it is the resume anchor.
   replaces bare `<M>%` with the 80% anchor + a justification line; SKILL Gate 2 tells the
   design agent to start at 80%, justify deviations, and surface the number for human veto.
   (Prose-only; no code.)
-- [ ] #14 — post-run analysis command + auto-report + pre-Gate-9 breach warning
-- [ ] guard + analyzer unit tests green in container
+- [x] **#14** — observability wired in (P55). New `commands/analyze-run.md` standalone
+  command; SKILL Gate 9 runs the fast isolation pass (`--no-transcript`) pre-approval and
+  requires human acknowledgement on any VIOLATION; new Gate 11 REPORT auto-runs the full
+  analyzer after commit. Analyzer stays measure-only (P40); reuses `--workdir`/`--no-transcript`
+  (no new orchestration). CLAUDE.md gate count 0–11.
+- [x] **guard + analyzer unit tests green** — 52 passed on the Mac host (pytest-only venv);
+  full pinned-toolchain run (ruff/mypy/mutmut) is a container step for Phase 2.
 
 ### Phase 2 — First container dry run (`parse_duration`) — ⬜ NOT STARTED
 

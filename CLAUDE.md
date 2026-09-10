@@ -40,7 +40,7 @@ files pin per-gate models, and a hook enforces isolation. There is no hand-writt
 
 - **Conductor [C]** — the interactive session running the skill
   (`implement-feature-plugin/skills/implement-feature/SKILL.md`). It holds the through-line, talks to the
-  human, and walks 11 gates (0–10) in order.
+  human, and walks 12 gates (0–11) in order.
 - **Isolated subagents [I]** — bias-sensitive gates run as **separate agents** with fresh context, a
   **pinned model/effort**, and a **curated file inbox**. They are spawned via the Agent tool using the
   **plugin-namespaced** `subagent_type`, e.g. `implement-feature:test-writer` (never the bare name).
