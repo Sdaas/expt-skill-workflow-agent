@@ -214,6 +214,16 @@ and the branch decision.** Record the confirmed plan (with `<code_root>`, `<test
 
 Interview to full clarity using a **grilling** approach. Do NOT guess scope.
 
+**Anchor the scope FIRST — smallest viable (P57).** Grilling reaches *clarity*, not *maximal
+scope*; left unchecked its completeness bias enumerates every format/mode/option and the
+feature balloons. So before working the frontier: propose a **one-paragraph minimal version**
+(the smallest thing that satisfies the core request) and an explicit **deferred / out-of-scope
+list**, and get the human to **confirm the scope boundary**. Then grill only *within* that
+boundary — each extra format/mode/option is an **explicit scope decision the human opts into**,
+never an assumption you resolve toward "more." Your recommended answers (`➡️`) **default to the
+smaller option**. (Dry run: a "minimal `parse_duration`" grew into a 3-format parser because the
+interview maximized instead of anchoring.)
+
 **Method (design tree, worked in rounds):**
 - Map the feature as a tree of decisions. Each round, ask the whole **frontier** —
   every question whose prerequisites are already settled.

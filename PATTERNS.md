@@ -435,4 +435,15 @@
   human, not something the plugin can enforce. Effort is even less observable — it is emitted at
   runtime *nowhere*; it lives only statically in the agent-def frontmatter. [#8-adjacent, dry run]
 
+- ✅ **P57 — Grilling reaches CLARITY, not maximal scope — anchor to smallest-viable, expansions opt-in.**
+  A thorough interview ("nothing silently assumed") has a completeness bias: it enumerates every
+  format/mode/edge and the conductor's recommended answers drift toward *more*. Dry run: a "minimal
+  `parse_duration(s)->int`" became a 3-format `->float` parser with 304 tests and ~14 rounds — the
+  workflow maximized rather than asking "is this in v1?" Fix: **before** grilling the frontier, propose
+  a one-paragraph **minimal version** + an explicit **deferred/out-of-scope list**, and have the human
+  **confirm the scope boundary first**. Then grill only within it; each added mode is an explicit scope
+  decision the human opts into, and recommended answers default to the *smaller* option. Complementary
+  to grilling (still reach full clarity) — just on a scope bounded on purpose. Recorded up-front in
+  `requirements.md` §1, detailed in §6. [dry run]
+
 <!-- New patterns appended below as chunks reveal them. -->

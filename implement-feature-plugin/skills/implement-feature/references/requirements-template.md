@@ -8,6 +8,13 @@
 ## 1. Summary
 One paragraph: what the feature does and why, in the user's words.
 
+### Scope boundary — smallest viable (confirmed FIRST, P57)
+State the **minimal version** the human confirmed up front, and what is **deferred / out of
+scope**. This is the anchor the interview grilled *within* — expansions beyond it were explicit
+human opt-ins, not assumptions. (The detailed out-of-scope list lives in §6.)
+- **Minimal version:** …
+- **Deferred (not in this feature):** …
+
 ## 2. Functional acceptance criteria
 Numbered, testable "done when…" statements. Cover inputs/outputs, core behavior,
 error conditions, and edge cases.
