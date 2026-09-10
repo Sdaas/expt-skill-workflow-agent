@@ -165,19 +165,28 @@ the session transcript for per-agent **model + token** figures. See
 
    | Gate | Runs as | Model / effort | Why |
    |---|---|---|---|
-   | INTERVIEW | [C] | Opus 4.8, medium | requirements reasoning = strong model |
-   | DESIGN / SPEC | [C] | Opus 4.8, medium | design = strong model |
+   | INTERVIEW | [C] | Opus, medium | requirements reasoning = strong model |
+   | DESIGN / SPEC | [C] | Opus, medium | design = strong model |
    | WRITE-TESTS | [I] `test-writer` | Sonnet, medium | writing tests = implementation |
-   | TEST-REVIEW | [I] `test-reviewer` | Opus 4.8, medium | review > implementation |
+   | TEST-REVIEW | [I] `test-reviewer` | Opus, medium | review > implementation |
    | IMPLEMENT | [I] `implementer` | Sonnet, medium | implementation |
    | VERIFY | [I] `verifier` | Sonnet, medium | verification |
-   | CODE-REVIEW | [I] `code-reviewer` | Opus 4.8, medium | review > implementation |
+   | CODE-REVIEW | [I] `code-reviewer` | Opus, medium | review > implementation |
    | REVIEW-GUIDE / COMMIT | [C] | Sonnet or Haiku | mechanical presentation + commit |
 
-   Model IDs: Opus 4.8 = `claude-opus-4-8`; Sonnet 5 = `claude-sonnet-5`;
-   Haiku 4.5 = `claude-haiku-4-5-20251001`.
+   Subagent models are pinned in `agents/*.md` as the **aliases** `opus` / `sonnet`, which
+   resolve to the latest tier available in the environment (e.g. Opus 5 / Sonnet 5) — do
+   not hardcode a dated ID. **Conductor `[C]` gates run on the session's own model** (the
+   plugin cannot pin it), so honoring the "Opus for design" rows depends on the human.
 
-6. **Branch decision (never commit on the default branch — P52).** Note the current branch
+6. **Conductor model self-check (P56).** A plugin cannot set the conductor's own model, so
+   **state the model you are currently running as** and compare it to the `[C]` rows above.
+   **If you are not on an Opus-tier model, WARN the human**: INTERVIEW/DESIGN will run below
+   the recommended design-grade strength (and DESIGN would then be no stronger than the
+   `implementer`), and offer relaunching with `claude --model opus`. The human may proceed
+   or relaunch; record the actual conductor model in the run-log either way.
+
+7. **Branch decision (never commit on the default branch — P52).** Note the current branch
    (`git rev-parse --abbrev-ref HEAD`) and the repo's default branch (e.g. `main`/`master`).
    **Assess the feature's scope** and recommend:
    - **trivial** change → stay on the current branch (only if it is **not** the default);

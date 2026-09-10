@@ -421,4 +421,15 @@
   never auto-blocks or edits; real-time blocking stays the guard hook's job. Feasible because the
   guard writes the audit log *per tool call*, so the log is complete by Gate 9. [#14]
 
+- ✅ **P56 — A plugin cannot pin the CONDUCTOR's model; only subagents. Self-check and warn.**
+  Subagent gates get a pinned model via `agents/*.md` frontmatter (`opus`/`sonnet` aliases →
+  latest tier), and the transcript proves it held (dry run: reviews on Opus 5, impl/tests on
+  Sonnet 5). But the interactive conductor runs on **whatever model the session was launched
+  with** — no frontmatter governs it. Dry run: the conductor ran Sonnet, so INTERVIEW/DESIGN
+  executed *below* the prescribed Opus and no stronger than the implementer, denting "design uses
+  a strong model." Fix: Gate 0 has the conductor **state its own model and warn** if it is below
+  the plan, offering `claude --model opus`; the plan's `[C]` rows are a recommendation to the
+  human, not something the plugin can enforce. Effort is even less observable — it is emitted at
+  runtime *nowhere*; it lives only statically in the agent-def frontmatter. [#8-adjacent, dry run]
+
 <!-- New patterns appended below as chunks reveal them. -->
