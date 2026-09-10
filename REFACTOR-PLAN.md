@@ -238,7 +238,13 @@ Update this section as work proceeds — it is the resume anchor.
   mirrored predicate + `read_calls` tracks `(tool, target)` so the detective check is tool-aware.
   Regression fixtures: benign `os.environ`/`secrets.token_hex`/etc. pass; real `cat .env` /
   `~/.ssh/id_rsa` / `credentials.json` / `.pem` denied. **39 tests green.** Pattern P54.
-- [ ] #12 — confine the test-reviewer
+- [x] **#12** — test-reviewer confinement. guard.py rule 5: reviewer's only sanctioned
+  writes are its handoff/ outbox + a scratch dir; Write/Edit and Bash write-redirections
+  (`>`/`>>`/`tee`, best-effort) into the product tree are denied (P44 — disallowedTools is
+  doc-only with Bash). agents/test-reviewer.md (D2): analytical review only, no reference
+  impl, no mutmut (deferred to Gate 7), probes OK. SKILL Gate 4 updated. analyzer mirrors a
+  5th detective check "test-reviewer stayed out of the product tree". **47 tests green.**
+  Patterns P44/P45 already present.
 - [ ] #15 — analyzer reads `<uuid>/subagents/*.jsonl`
 - [ ] #13 — mutation kill-rate anchored at 80%
 - [ ] #14 — post-run analysis command + auto-report + pre-Gate-9 breach warning

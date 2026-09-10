@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """PreToolUse guard hook for /implement-feature.
 
-Does five jobs on every Read/Bash/Grep/Glob/Edit/Write (conductor AND every subagent):
+Does six jobs on every Read/Bash/Grep/Glob/Edit/Write (conductor AND every subagent):
   1. AUDIT  — append one JSONL line per tool call (agent_id/agent_type/tool/target).
   2. SECRETS GUARDRAIL — deny reads of .env / keys / credentials for ANY agent.
   3. ALGORITHM-BLIND — deny reads of design-internal for the test-writer agent only.
-  4. TEST-INTEGRITY — deny the implementer editing/writing any test file (it must make
-     the code pass the tests, never weaken the tests to pass).
-  5. DRAFT-CONFINEMENT — deny ANY subagent reading anything under handoff/draft/ (an
+  3b. DRAFT-CONFINEMENT — deny ANY subagent reading anything under handoff/draft/ (an
      unapproved draft must never reach an isolated gate; the conductor promotes on
      approval, and only then is a file readable at handoff/).
+  4. TEST-INTEGRITY — deny the implementer editing/writing any test file (it must make
+     the code pass the tests, never weaken the tests to pass).
+  5. REVIEWER-CONFINEMENT — deny the test-reviewer any write (Write/Edit or a Bash
+     redirection) outside its handoff/ outbox and a scratch dir; it is an analytical
+     critic and must never mutate the product tree (build no reference implementation).
 
 Reads the hook JSON on stdin. To DENY: print a hookSpecificOutput deny decision and
 exit 2. To ALLOW: exit 0.
@@ -105,6 +108,42 @@ def is_test_path(target: str) -> bool:
             or base.startswith("test_") or base.endswith("_test.py")
             or base == "conftest.py")
 
+# --- test-reviewer write-confinement (#12) ---------------------------------
+# A Bash-granted critic can't be made read-only by removing Write/Edit (P44), so we
+# enforce the property we actually want: the test-reviewer NEVER mutates the product
+# tree. Its only sanctioned writes are its outbox (under handoff/) and throwaway probes
+# in a scratch/temp dir. Everything else — the repo's src/tests — is denied.
+def _is_scratch_path(t: str) -> bool:
+    return ("/tmp/" in t or t.startswith("/tmp") or "/private/tmp/" in t
+            or "/var/folders/" in t or "scratchpad" in t or "/scratch/" in t)
+
+def reviewer_write_denied(target: str) -> bool:
+    """True if the test-reviewer must NOT write here (i.e. not its outbox/scratchpad)."""
+    t = target.strip().strip("'\"").replace("\\", "/")
+    if not t:
+        return False
+    if "/handoff/" in t or t.startswith("handoff/"):
+        return False   # its named outbox (06-test-review-findings.md) lives under handoff/
+    if _is_scratch_path(t):
+        return False   # tiny throwaway probes are legitimate (P45)
+    return True        # anything else = the product tree / repo -> denied
+
+def bash_write_targets(command: str) -> list[str]:
+    """Best-effort: the paths a Bash command redirects/writes into (`>`, `>>`, `tee`).
+    Bash write-detection is inherently fragile (P44) — key on the targets we can see."""
+    toks = _bash_tokens(command)
+    targets: list[str] = []
+    for i, tok in enumerate(toks):
+        stripped = tok.lstrip("012")  # 1>, 2>> ...
+        if stripped in (">", ">>", ">|") and i + 1 < len(toks):
+            targets.append(toks[i + 1])
+        elif stripped.startswith(">") and len(stripped) > 1:
+            targets.append(stripped.lstrip(">|"))   # `>file` with no space
+        elif tok == "tee" and i + 1 < len(toks):
+            nxt = toks[i + 1]
+            targets.append(nxt if not nxt.startswith("-") else (toks[i + 2] if i + 2 < len(toks) else ""))
+    return [t for t in targets if t]
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -163,6 +202,20 @@ def main():
     if "implementer" in agent_type and tool in WRITEISH and is_test_path(target):
         deny("Blocked by implement-feature guard: the implementer must make the code pass "
              "the tests, not modify the tests. Editing test files is not allowed.")
+
+    # 5. REVIEWER-CONFINEMENT (#12) — the test-reviewer never mutates the product tree.
+    #    Sanctioned writes: its handoff/ outbox and throwaway probes in a scratch dir.
+    if "test-reviewer" in agent_type:
+        if tool in WRITEISH and reviewer_write_denied(target):
+            deny("Blocked by implement-feature guard: the test-reviewer is an analytical "
+                 "critic — it may write only its handoff/ findings outbox and throwaway "
+                 f"probes in a scratch dir, never the product tree (target: {target[:80]}).")
+        if tool == "Bash":
+            bad = [t for t in bash_write_targets(target) if reviewer_write_denied(t)]
+            if bad:
+                deny("Blocked by implement-feature guard: the test-reviewer must not write "
+                     "into the product tree via Bash (build no reference implementation; use "
+                     f"a scratch dir for probes). Offending write target(s): {', '.join(bad)[:120]}.")
 
     sys.exit(0)
 

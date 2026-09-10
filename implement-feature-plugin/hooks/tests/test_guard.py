@@ -172,3 +172,53 @@ def test_lookalike_dir_not_flagged(tmp_path):
     rc, _ = run_guard(call("Read", "/repo/backend.envtools/app.py"),
                       env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
     assert rc == 0
+
+
+# --- #12: test-reviewer write-confinement ----------------------------------
+
+REVIEWER = "implement-feature:test-reviewer"
+
+
+def test_reviewer_may_write_its_handoff_outbox(tmp_path):
+    rc, _ = run_guard(
+        call("Write", "/repo/.implement-feature/r/handoff/06-test-review-findings.md",
+             agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0
+
+
+def test_reviewer_may_write_scratch_probe(tmp_path):
+    rc, _ = run_guard(
+        call("Write", "/tmp/scratchpad/probe.py", agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0
+
+
+def test_reviewer_denied_writing_product_source(tmp_path):
+    rc, out = run_guard(
+        call("Write", "/repo/src/ref.py", agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_reviewer_denied_bash_heredoc_into_product(tmp_path):
+    rc, out = run_guard(
+        call("Bash", "cat > src/ref.py <<'EOF'\nx=1\nEOF", agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert "product tree" in json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"]
+
+
+def test_reviewer_bash_probe_to_scratch_allowed(tmp_path):
+    rc, _ = run_guard(
+        call("Bash", "cat > /tmp/scratchpad/probe.py <<'EOF'\nx=1\nEOF", agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0
+
+
+def test_reviewer_may_run_pytest(tmp_path):
+    # A read-ish Bash with no write redirection must not be denied.
+    rc, _ = run_guard(call("Bash", "python -m pytest -q", agent_type=REVIEWER),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0

@@ -98,6 +98,29 @@ def test_real_secret_read_via_bash_is_a_violation(tmp_path):
     assert not _check(a, "no secret/.env access by any agent").passed
 
 
+def test_reviewer_writing_product_tree_is_a_violation(tmp_path):
+    # #12: reviewer writes/edits or Bash-redirects into src/tests -> detected.
+    log = write_runlog(tmp_path / "rl.jsonl", [
+        call("implement-feature:test-reviewer", "Write", "/repo/src/ref.py"),
+        call("implement-feature:test-reviewer", "Bash", "cat > tests/test_x.py <<EOF\nx\nEOF"),
+    ])
+    a = parse_runlog(str(log))
+    c = _check(a, "test-reviewer stayed out of the product tree")
+    assert not c.passed
+    assert len(c.evidence) == 2
+
+
+def test_reviewer_outbox_and_probe_are_clean(tmp_path):
+    log = write_runlog(tmp_path / "rl.jsonl", [
+        call("implement-feature:test-reviewer", "Write",
+             "/repo/.implement-feature/r/handoff/06-test-review-findings.md"),
+        call("implement-feature:test-reviewer", "Bash", "cat > /tmp/scratchpad/p.py <<EOF\nx\nEOF"),
+        call("implement-feature:test-reviewer", "Bash", "python -m pytest -q"),
+    ])
+    a = parse_runlog(str(log))
+    assert _check(a, "test-reviewer stayed out of the product tree").passed
+
+
 def test_malformed_lines_are_skipped_and_counted(tmp_path):
     p = tmp_path / "rl.jsonl"
     p.write_text(

@@ -312,6 +312,13 @@ and `05-test-intent.md`. (Only the *writer* is algorithm-blind; the reviewer is 
   test plan (incl. the mutation cases behind the kill-rate target).
 - **No implementation leakage** — tests encode the contract, not one algorithm.
 
+**Analytical review only — no reference implementation (P45).** Gate 4 is a *reasoning*
+pass: the reviewer names plausible bugs and argues a test kills each; it may write **tiny
+throwaway probes** but must **not** build a reference implementation or run `mutmut`.
+Empirical mutation is implementation-specific, so it belongs at **Gate 7 CODE-REVIEW**,
+against the real shipped code. The guard confines the reviewer's writes to its outbox +
+a scratch dir (a Bash-holding critic can't be made read-only by tool-removal alone, P44).
+
 It writes `<artifact_dir>/handoff/06-test-review-findings.md` with a **verdict**:
 - **CHANGES-REQUESTED → bounded loop:** re-spawn `implement-feature:test-writer` with the
   findings file added to its inbox; then re-review. **Bound it:** after 2 rounds with no

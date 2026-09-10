@@ -103,6 +103,39 @@ def is_test_path(target: str) -> bool:
             or base == "conftest.py")
 
 
+# test-reviewer write-confinement mirror (#12). KEEP IN SYNC with guard.py.
+def _is_scratch_path(t: str) -> bool:
+    return ("/tmp/" in t or t.startswith("/tmp") or "/private/tmp/" in t
+            or "/var/folders/" in t or "scratchpad" in t or "/scratch/" in t)
+
+
+def reviewer_write_denied(target: str) -> bool:
+    t = target.strip().strip("'\"").replace("\\", "/")
+    if not t:
+        return False
+    if "/handoff/" in t or t.startswith("handoff/"):
+        return False
+    if _is_scratch_path(t):
+        return False
+    return True
+
+
+def bash_write_targets(command: str) -> list[str]:
+    toks = _bash_tokens(command)
+    targets: list[str] = []
+    for i, tok in enumerate(toks):
+        stripped = tok.lstrip("012")
+        if stripped in (">", ">>", ">|") and i + 1 < len(toks):
+            targets.append(toks[i + 1])
+        elif stripped.startswith(">") and len(stripped) > 1:
+            targets.append(stripped.lstrip(">|"))
+        elif tok == "tee" and i + 1 < len(toks):
+            nxt = toks[i + 1]
+            targets.append(nxt if not nxt.startswith("-")
+                           else (toks[i + 2] if i + 2 < len(toks) else ""))
+    return [t for t in targets if t]
+
+
 # --- data model ------------------------------------------------------------
 @dataclass
 class AgentActivity:
@@ -248,6 +281,27 @@ def _run_isolation_checks(agents: dict[str, AgentActivity]) -> list[IsolationChe
                 if not secret_hits else
                 f"{len(secret_hits)} attempt(s) to read secrets/.env (guard blocks at runtime)"),
         evidence=secret_hits,
+    ))
+
+    # 3c. test-reviewer must not have written into the product tree (#12). Its Write/Edit
+    #     targets and any Bash write-redirection are checked against its sanctioned outputs
+    #     (handoff/ outbox + scratch dir).
+    reviewer_hits: list[str] = []
+    for a in agents.values():
+        if "test-reviewer" not in a.agent_type:
+            continue
+        reviewer_hits += [t for t in a.writes if reviewer_write_denied(t)]
+        for tool, t in a.read_calls:
+            if tool == "Bash":
+                reviewer_hits += [w for w in bash_write_targets(t) if reviewer_write_denied(w)]
+    checks.append(IsolationCheck(
+        name="test-reviewer stayed out of the product tree",
+        passed=not reviewer_hits,
+        detail=("no product-tree writes by the test-reviewer"
+                if not reviewer_hits else
+                f"{len(reviewer_hits)} product-tree write(s) by the test-reviewer "
+                "(guard blocks at runtime)"),
+        evidence=reviewer_hits,
     ))
 
     # 4. distinct expected agents actually ran (proves isolation, not just intent)
