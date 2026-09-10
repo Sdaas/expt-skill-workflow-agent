@@ -88,6 +88,14 @@ folder). Pass its **absolute path** to every subagent brief so each gate applies
 standard. This workflow is **prescriptive about the dev container** — it assumes the
 pinned toolchain from `toolchain/requirements-dev.txt` is installed.
 
+> **Reference-file read tax (P53).** The skill's bundled `references/*.md` live in the
+> plugin install dir, *outside* the session's working dir, so Claude Code's default
+> permissions prompt "read outside working directories" the first time the conductor or a
+> subagent opens one. The fix is a one-time `permissions.allow` rule granting reads under
+> the plugin dir — a real user adds it at install (see the User Guide), and our dry-run
+> fixture ships it in `.claude/settings.json`. Load-bearing content (the Gate 0 preflight
+> command) is kept **inline** here so the hot path needs no such read at all.
+
 ## Observability & guardrails (enforced automatically)
 
 Two records, plus a hard guard, run alongside every gate:
@@ -123,10 +131,12 @@ the session transcript for per-agent **model + token** figures. See
    Tell the human its contents (the active `<artifact_dir>`) and ask them to finish or
    abandon that run before starting a new one. (There is no in-workflow resume yet; a
    stale lock is removed by hand.)
-1. **Preflight (hard-fail).** Confirm we are inside the dev container and run the tool
-   check from `references/quality-standards.md`
-   (`ruff --version && mypy --version && pytest --version && python -c "import
-   importlib.metadata as m; print('mutmut', m.version('mutmut'))"`). **Note:** mutmut is
+1. **Preflight (hard-fail).** Confirm we are inside the dev container and run this
+   **inline** tool check — the command is reproduced here on purpose so you do **not** open
+   `references/quality-standards.md` just to run it (that read trips the "read outside
+   working directories" prompt — the reference-file read tax, P53):
+   `ruff --version && mypy --version && pytest --version && python -c "import
+   importlib.metadata as m; print('mutmut', m.version('mutmut'))"`. **Note:** mutmut is
    version-checked via package metadata, **not** `mutmut --version` — mutmut eagerly loads
    its config on *any* invocation and hard-fails outside a project with a discoverable
    source layout, so `mutmut --version` would false-fail the preflight. **If any tool is

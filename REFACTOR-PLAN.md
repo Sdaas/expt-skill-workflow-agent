@@ -226,7 +226,12 @@ Update this section as work proceeds — it is the resume anchor.
   `feature/<NN-slug>`; hard never-on-default invariant (branch required if HEAD is
   default), human overrides triviality but not the guardrail; Gate 10 re-checks before
   commit. SKILL Gates 0/10; pattern P52. (Prose-only; no code.)
-- [ ] #5 — kill reference-file read-tax
+- [x] **#5** — reference-file read tax (P53). Part A: Gate 0 preflight reworded as
+  explicitly **inline** (don't open quality-standards.md to run it); standards section
+  documents the tax + fix. Part B: documented `permissions.allow` read rule for the plugin
+  dir (install-time setting) — UG documents it for real users (Phase 3), dry-run fixture
+  ships it in `.claude/settings.json` (Phase 2, where the exact glob is verified live).
+  SKILL + PATTERNS P53. (Prose-only; no code.)
 - [ ] #16 (+#1) — secret false-positive on Bash strings; drop dead basename block
 - [ ] #12 — confine the test-reviewer
 - [ ] #15 — analyzer reads `<uuid>/subagents/*.jsonl`

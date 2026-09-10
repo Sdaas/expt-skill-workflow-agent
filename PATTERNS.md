@@ -386,4 +386,17 @@
   HEAD is the default branch a new branch is *required* regardless of triviality. Enforced twice:
   the Gate 0 STOP-to-confirm and a re-check at Gate 10 before the commit lands. [#8]
 
+- ✅ **P53 — Kill the "reference-file read tax": inline the hot path, grant the plugin dir once.**
+  Claude Code silently allows reads inside the session's working dir but *prompts* ("read outside
+  working directories") for reads outside it. A plugin's bundled `references/*.md` live in the
+  install dir — outside the user's project cwd — so every conductor/subagent read of a template or
+  standards file trips the prompt. This is **Claude Code's default permission behavior, not our
+  `guard.py`** and not a sandbox setting. Two-part fix: **(A)** keep load-bearing content **inline**
+  in `SKILL.md` (the Gate 0 preflight command is reproduced in the skill so no read is needed to run
+  it); **(B)** add a one-time `permissions.allow` read rule for the plugin dir so bundled references
+  read silently — a `Read` allow rule scoped to the plugin cache (e.g. `~/.claude/plugins/**`).
+  A plugin cannot self-grant arbitrary read paths, so this is an **install-time setting**: documented
+  in the User Guide for real users, and shipped in the dry-run fixture's `.claude/settings.json`.
+  (Exact allow-rule glob is confirmed live in the Phase 2 container dry run.) [#5]
+
 <!-- New patterns appended below as chunks reveal them. -->
