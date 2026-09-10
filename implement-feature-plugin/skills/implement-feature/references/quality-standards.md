@@ -24,9 +24,14 @@ supported to run on a bare host.
 Before any work, the conductor verifies the environment. **If any check fails, STOP and
 tell the human to rebuild/enter the dev container — do not proceed.**
 ```
-ruff --version && mypy --version && pytest --version && mutmut --version
+ruff --version && mypy --version && pytest --version && python -c "import importlib.metadata as m; print('mutmut', m.version('mutmut'))"
 ```
 (Also confirm we are inside the container, not the host.)
+
+> **Why not `mutmut --version`?** mutmut eagerly loads its config on *any* invocation and
+> hard-fails when run outside a project with a discoverable source layout (e.g. a bare
+> scratch dir) — so `mutmut --version` false-fails the preflight. Check its installed
+> version via package metadata instead (same approach as the `.devcontainer` postCreate).
 
 ## Definition of "green" — IMPLEMENT inner loop (fast checks)
 The implementer may NOT exit its loop until ALL of:

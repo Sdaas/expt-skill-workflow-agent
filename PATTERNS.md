@@ -333,4 +333,49 @@
   naïve input; ±5-min pad) as a second line of defense. Selecting the transcript by *window overlap*
   (not "newest file") is robust to stray concurrent sessions.
 
+- ✅ **P44 — `disallowedTools` is not a sandbox when `Bash` is granted.** Denying `Write`/`Edit` does
+  **nothing** if the agent still has `Bash` — `cat >`, `echo >`, heredocs all write files. (Dry run:
+  the "read-only" test-reviewer wrote both its report *and* `.py` files via Bash.) So a critic that
+  needs Bash (to run pytest/ruff) can never be made read-only by tool-removal. Enforce the property you
+  actually care about — *never mutates the product tree* — in the **guard hook** (deny writes whose
+  visible target is under workdir `src/`·`tests/`); treat `disallowedTools` as documentation, not a
+  fence. [#12, #16]
+- ✅ **P45 — A critic may PROBE, never IMPLEMENT.** A reviewer may write **tiny throwaway probes** to
+  answer a specific question (e.g. "does `int(float(bignum))` diverge?") but must not build a
+  **reference implementation** of the feature under review. (Dry run: the test-reviewer built a full
+  ref impl + ran 24 mutants.) Also: **mutation testing is implementation-specific** — mutants of a
+  throwaway ref impl don't correspond to the shipped code's mutants, so empirical mutation belongs at
+  the gate that has the *real* implementation (CODE-REVIEW), not before it. Pre-implementation review
+  is **analytical** (name plausible bugs, confirm a test kills each). [#12, #13]
+- ✅ **P46 — Anchored defaults beat free-pick.** An agent handed a metric with **no anchor** drifts (the
+  design agent free-picked a 95% mutation kill-rate with no guidance). Ship a documented **default
+  anchor** (80%) and require the agent to **justify deviations**, surfaced at the human approval gate.
+  Per-feature flexibility (P24) + an anchor, not per-feature *arbitrariness*. [#13]
+- ✅ **P47 — Never ask a human to approve an artifact they haven't seen in full.** Separate **authoring**
+  (write the draft so the human reads the real thing) from **finalizing** (promote to the approved
+  handoff downstream may consume). The old "don't write before approval" rule protected the handoff
+  contract but blinded the reviewer. Fix: draft → **review the real file** → bounded revise loop
+  (human hand-edits *and/or* agent revises; conductor re-reads disk as truth) → **promote** on approval.
+  Uniform across every human STOP gate. [#11]
+- ✅ **P48 — Separate PRODUCT from PROCESS artifacts by lifecycle.** Shipping code/config/tests belong in
+  the repo's existing layout (feature-to-feature isolation is a **git branch** concern, not a
+  filesystem one); process artifacts (design, findings, run-log) belong in a **per-run, gitignored
+  workdir** (`.implement-feature/<NN-slug-timestamp>/`). Fusing them (workdir == repo root) collides the
+  moment a second feature exists. [#10]
+- ✅ **P49 — Pass per-run config to an out-of-band hook via a POINTER FILE, not env.** A hook is a
+  separate process spawned by the platform; it does **not** inherit env a conductor exports in a tool
+  call. To tell `guard.py` the current run's log path (decided at Gate 0, after launch), the conductor
+  writes a fixed-path pointer (`.active-run`) the hook reads. The same file doubles as a **single-run
+  lock** (fail fast if it exists). [#10]
+- ✅ **P50 — Number handoff files in READ ORDER so the directory is self-documenting.** A human browsing
+  `handoff/` should see the sequence in the file list itself (`01-requirements.md`,
+  `02-design-interface.md`, …). Number by read-sequence (stable under loops: a re-review overwrites its
+  numbered file). Safe because the guard matches by **substring**, so a numeric prefix still trips
+  `design-internal`/test-integrity checks. [#17]
+- ✅ **P51 — Observability must read where the PLATFORM actually writes — verify empirically.** The
+  analyzer reported "subagents: none" because it read only the top-level transcript; Claude Code writes
+  subagent transcripts under `<uuid>/subagents/*.jsonl` (+ `.meta.json`). The data proving model-pinning
+  was there all along. Don't assume the log layout — inspect the real filesystem the platform produces.
+  [#15]
+
 <!-- New patterns appended below as chunks reveal them. -->

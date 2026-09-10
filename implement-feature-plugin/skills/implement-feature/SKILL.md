@@ -79,8 +79,13 @@ validation of all of the above.
 
 0. **Preflight (hard-fail).** Confirm we are inside the dev container and run the tool
    check from `references/quality-standards.md`
-   (`ruff --version && mypy --version && pytest --version && mutmut --version`). **If any
-   tool is missing, STOP** and tell the human to rebuild/enter the dev container
+   (`ruff --version && mypy --version && pytest --version && python -c "import
+   importlib.metadata as m; print('mutmut', m.version('mutmut'))"`). **Note:** mutmut is
+   version-checked via package metadata, **not** `mutmut --version` — mutmut eagerly loads
+   its config on *any* invocation and hard-fails outside a project with a discoverable
+   source layout (e.g. a bare scratch dir), so `mutmut --version` would false-fail the
+   preflight. **If any tool is missing, STOP** and tell the human to rebuild/enter the dev
+   container
    (`.devcontainer` postCreate installs `toolchain/requirements-dev.txt`). Do not proceed.
 1. Restate the feature in **one sentence**.
 2. Propose the **workdir** (where code + `handoff/` will live) and confirm the stack

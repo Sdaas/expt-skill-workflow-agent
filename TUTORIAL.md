@@ -772,3 +772,41 @@ separation (the real transcript rendered fine beside a toy run-log).
   alarm fails safe: bounded, visible, self-correcting — and the diagnostic still carries the real
   exception, and the wording is hedged ("*likely* format changed"). So a loud alarm that's occasionally
   wrong ≫ a silent gap that's invisibly wrong.
+
+## Chunk 21 — End-to-end dry run (the whole pipeline, for real, in the sandbox)
+Ran the real `/implement-feature` on `parse_duration` inside the container, all 11 gates + guard hook,
+then ran the analyzer on the resulting logs. **A dry run is a bug-finding machine** — it validated the
+core design *and* shook out 13 concrete improvements (GitHub issues #5–#17).
+
+**What it proved (the invariants are real, not aspirational):**
+- **Model pinning works.** The 6 subagent transcripts split by model exactly as designed — **2 on
+  `claude-opus-5`** (the review gates: test-reviewer + code-reviewer, pinned opus/high) and **4 on
+  `claude-sonnet-5`** (test-writer, implementer, verifier + a loop re-spawn). Confirms *reviews use a
+  higher model than implementation*.
+- **Isolation held** (from the guard's `if-runlog.jsonl`): test-writer stayed algorithm-blind,
+  implementer never touched a test file, 5 distinct subagent types ran, pipeline committed.
+
+**What it exposed (see PATTERNS P44–P51):** `disallowedTools` is not a sandbox when `Bash` is granted
+(#12); a critic building a reference implementation (#12); a free-picked 95% mutation threshold (#13);
+approving a *summary* not the real design (#11); workdir == repo root collides on a 2nd feature (#10);
+two analyzer bugs — blind to `subagents/*.jsonl` (#15) and a secret false-positive on Bash command
+strings containing `os.environ` (#16).
+
+### Q&A captured this chunk
+- **Q: `run-log.jsonl` vs `if-runlog.jsonl`?** Two producers: the **conductor** writes
+  `handoff/run-log.jsonl` (one entry per **gate** — workflow narrative); the **guard hook** writes
+  `if-runlog.jsonl` (one line per **tool call** — an out-of-band audit trail the analyzer uses for
+  isolation verdicts, deliberately independent so a gate can't fake it). Near-identical names = a wart
+  (#10).
+- **Q: Why not have the test-reviewer run real mutation testing to prove the tests are strong?**
+  Mutation testing is **implementation-specific**: mutants of a throwaway reference impl ≠ mutants of
+  the shipped code. The authoritative empirical mutation run belongs at CODE-REVIEW (real code) + its
+  bounded `→TESTS` loop; the pre-implementation gate does cheap **analytical** review. A critic may
+  *probe*, never *implement* (P45).
+- **Q: Where does per-run state reach the guard hook?** Not via env — a hook is a separate process that
+  doesn't inherit conductor-exported env. Use a **pointer file** (`.active-run`) the hook reads; it also
+  serves as a single-run lock (P49).
+- **Q: How do you view container-only files from the Mac?** The workdir (`~/test-implement-feature`) is
+  *not* a bind mount (only the repo at `/workspaces/...` is). Options: ask the agent to `devcontainer
+  exec` a `cat`/`ls`; **VS Code → Dev Containers: Attach to Running Container** (full explorer);
+  `docker cp` a snapshot.

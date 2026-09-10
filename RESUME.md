@@ -22,8 +22,23 @@ design-patterns/anti-patterns/traps checklist we apply when building.
    current chunk's work uncommitted. (Instruction added 2026-09-07.)
 
 ## Status
-- **Current phase:** Part D — Build the real product
-- **Last completed chunk:** Chunk 20 ✅ (2026-09-09, **build**) — built the **observability analyzer**
+- **Current phase:** Part D — Build the real product (dry run complete; wrap next)
+- **Last completed chunk:** Chunk 21 ✅ (2026-09-10, **end-to-end dry run**) — ran the real
+  `/implement-feature` on `parse_duration` inside the container through all 11 gates + guard hook, then
+  ran the analyzer on the real logs. **Validated the core design:** model pinning is real (2 subagents
+  on `claude-opus-5` = the review gates, 4 on `claude-sonnet-5`), isolation held (test-writer
+  algorithm-blind, implementer never touched tests, 5 distinct subagents), pipeline committed. The run
+  was a **bug-finding machine** → filed **13 GitHub issues (#5–#17)**, incl. two analyzer bugs
+  (#15 blind to `subagents/*.jsonl`; #16 secret false-positive on Bash strings) and the "`disallowedTools`
+  is not a sandbox when Bash is granted" finding (#12). Only code change committed: the **mutmut preflight
+  fix** (metadata check, not `mutmut --version`, which false-fails in a source-less dir). Everything else
+  is captured as issues, not implemented. Added **P44–P51**. **Next: PLAN item 21 (wrap: package +
+  concept recap).**
+- **Open issues from the dry run (#5–#17):** #5 read-tax, #6 UG, #7 DG, #8 branch-assessment,
+  #9 `/resume-feature`, #10 workdir-redesign(+log-wart), #11 review-real-artifact, #12 test-reviewer
+  confinement, #13 mutation-anchor, #14 post-run-analysis-command, #15 analyzer-subagents, #16
+  secret-false-positive, #17 numbered-handoff-files. **These are the backlog for a future build phase.**
+- **Superseded — Chunk 20 ✅ (2026-09-09, build):** built the **observability analyzer**
   `implement-feature-plugin/analyzer/` (test-first, ruff+mypy clean, 16 tests). Two independent readers:
   `runlog.py` (load-bearing; per-agent activity + 4 isolation verdicts) and `transcript.py` (best-effort
   satellite; per-model tokens, schema self-check, soft `TranscriptAbsent` / loud `TranscriptFormatError`);
@@ -34,49 +49,33 @@ design-patterns/anti-patterns/traps checklist we apply when building.
   Patterns added: **P41** fail-loud, **P42** stable-core+quarantined-satellite, **P43** correlate-by-value.
 - **Chunk numbering note:** PLAN item 19 (promote the analyzer) was delivered across **session chunks 19
   (concept) + 20 (build)**, so session-chunk numbers now run **one ahead** of PLAN item numbers.
-- **Current chunk (IN PROGRESS):** session chunk 21 = **end-to-end dry run** (PLAN item 20) — run the
-  real `/implement-feature` on `parse_duration` **inside the sandbox container**, exercising all 11
-  gates + the guard hook, then run the analyzer on the resulting real `if-runlog.jsonl` + transcript.
-- **⏸️ PAUSED 2026-09-09** mid-chunk-21 (user took a break, before launching the interactive run). See
-  the **"⏸️ RESUME HERE"** block just below for exactly how to pick up.
+- **Current chunk (NEXT):** session chunk 22 = PLAN item 21 (**wrap**: package + concept recap). Before
+  that, a queued discussion: **the testing methodology itself** — a dry run should start from a
+  **bootstrapped python git repo** (pyproject/toml + `src/` + `tests/`), not a clean folder, because the
+  skill assumes (a) a git repo, (b) python, (c) identified src/tests dirs.
 
-## ⏸️ RESUME HERE — end-to-end dry run (session chunk 21)
-**Prep already done this session (may need re-verifying if the container was torn down):**
-- Container rebuilt + healthy; all pinned tools verified (ruff/mypy/pytest/mutmut/claude).
-- Marketplace `toy-local-marketplace` added + **`implement-feature` plugin installed** in the container
-  (picks up this session's `guard.py` UTC change + the `analyzer/`).
-- Scratch project created at **`~/test-implement-feature`** in the container: own git repo, one initial
-  commit, ambient git identity set globally (`Soumendra Daas <soumendra.daas@gmail.com>`).
-- Sample feature chosen: **`parse_duration`**.
-
-**To resume:**
-1. On the Mac: `devcontainer up --workspace-folder .` (idempotent; rebuilds if the container is gone —
-   the `devcontainer` CLI is now globally installed at `/opt/homebrew/bin/devcontainer`).
-2. **Re-verify prep if the container was recreated:** `claude plugin list` should show
-   `implement-feature@toy-local-marketplace` enabled; if not, re-run:
-   `claude plugin marketplace add /workspaces/expt-skill-workflow-agent && claude plugin install implement-feature@toy-local-marketplace`.
-   Check `~/test-implement-feature` exists with a git repo + identity; if gone, recreate it (git init,
-   set user.name/email, initial commit).
-3. **Launch the interactive run in a terminal (NOT via the agent's Bash tool — the gates need a TTY):**
-   `devcontainer exec --workspace-folder /Users/sdaas/dev/expt-skill-workflow-agent bash`
-   then inside: `cd ~/test-implement-feature && claude`, then type `/implement-feature`.
-4. **Feature brief to answer the INTERVIEW gate** (paste as the initial request; use for follow-ups):
-   > Build `parse_duration(s: str) -> int` → total **seconds**. Accepts ordered unit chunks h/m/s, each
-   > ≤once, whitespace ignored: `"1h30m"`→5400, `"45s"`→45, `"2h"`→7200, `"1h30m15s"`→5415. Raise
-   > `ValueError` on: empty, no units (`"100"`), unknown unit (`"5d"`), wrong order (`"30m1h"`),
-   > duplicate unit (`"1h2h"`), negative, non-numeric. `"0s"`→0; no artificial max. Pure function, no
-   > I/O, no concurrency (concurrency plan = N/A). Python 3.12, full type hints.
-5. **Gates:** 1 INTERVIEW (answer + approve) → 2 DESIGN (approve, STOP gate) → 3–7 auto (isolated
-   subagents) → 8 REVIEW-GUIDE → 9 HUMAN REVIEW (approve to ship, STOP gate) → 10 COMMIT.
-6. **After the run — analyze it** (back in an agent session, from the host):
-   - Find the real run-log: `~/test-implement-feature/if-runlog.jsonl` (guard writes to
-     `$CLAUDE_PROJECT_DIR/if-runlog.jsonl`; if empty there, check `/tmp/if-runlog.jsonl`).
-   - Run the analyzer **inside the container** against it and the container's transcript:
-     `devcontainer exec --workspace-folder . bash -lc 'cd /workspaces/expt-skill-workflow-agent/implement-feature-plugin && python -m analyzer.analyze_run --runlog ~/test-implement-feature/if-runlog.jsonl --projects-dir ~/.claude/projects --slug=<slug-for-~/test-implement-feature>'`
-     (the slug is that abs path with `/`→`-`). Expect REAL per-gate isolation verdicts + real per-agent
-     model/token split (subagents show as sidechains this time).
-7. Then record docs + commit session chunk 21 (the dry-run findings), and move to PLAN item 21 (wrap:
-   package + concept recap).
+## How to run a dry run (reference — chunk 21 done)
+The scratch project is **`~/test-implement-feature`** in the container (own git repo, ambient identity
+`Soumendra Daas <soumendra.daas@gmail.com>`). The `implement-feature@toy-local-marketplace` plugin is
+installed there. To run again:
+1. `devcontainer up --workspace-folder .` (idempotent). Verify `claude plugin list` shows
+   `implement-feature@toy-local-marketplace`; reinstall if not (`claude plugin marketplace update
+   toy-local-marketplace && claude plugin uninstall implement-feature && claude plugin install
+   implement-feature@toy-local-marketplace`). **Reinstall after ANY edit to `SKILL.md`/`guard.py`/
+   `analyzer/`** — the run uses the *cached* copy, and a running `claude` session must be restarted to
+   pick up a reinstall.
+2. **In a terminal (needs a TTY — not the agent's Bash tool):**
+   `devcontainer exec --workspace-folder /Users/sdaas/dev/expt-skill-workflow-agent bash`, then
+   `cd ~/test-implement-feature && claude`, then `/implement-feature`.
+3. Feature brief for INTERVIEW: `parse_duration(s)->int` seconds; ordered h/m/s each ≤once; ValueError on
+   empty/no-units/unknown-unit/wrong-order/dup/negative/non-numeric; pure fn, no concurrency (N/A).
+4. Gates: 1 INTERVIEW → 2 DESIGN (STOP) → 3–7 auto (isolated subagents) → 8 REVIEW-GUIDE →
+   9 HUMAN REVIEW (STOP) → 10 COMMIT. **Workaround until #11:** at DESIGN, ask the conductor to paste the
+   full design inline before approving (it writes files only after approval today).
+5. **Analyze the run** (the analyzer's transcript reader currently misses subagents — see #15):
+   `devcontainer exec --workspace-folder /Users/sdaas/dev/expt-skill-workflow-agent bash -lc 'cd /workspaces/expt-skill-workflow-agent/implement-feature-plugin && python -m analyzer.analyze_run --runlog ~/test-implement-feature/if-runlog.jsonl --projects-dir ~/.claude/projects --slug=-home-vscode-test-implement-feature'`
+   (note `--slug=` equals-form: a leading-dash slug is otherwise parsed as a flag). Subagent transcripts
+   are under `~/.claude/projects/<slug>/<uuid>/subagents/*.jsonl` (opus vs sonnet per gate).
 
 ## Resuming the container next session (quick ref)
 > NOTE (2026-09-07 pause): the container **and image were deleted** at session end, but the login
@@ -94,6 +93,14 @@ design-patterns/anti-patterns/traps checklist we apply when building.
    then `/reload-plugins`. See `DEVCONTAINER.md` for full lifecycle.
 
 ## Progress log
+- 2026-09-10 — **Chunk 21 ✅ (end-to-end dry run)**: ran real `/implement-feature` on `parse_duration`
+  in the container through all 11 gates + guard, then analyzed the logs. Validated model pinning
+  (opus-5 reviewers, sonnet-5 impl) + isolation + a committed result. Filed **13 issues (#5–#17)** —
+  the improvement backlog. Committed the **mutmut preflight fix** (metadata check) + these doc updates.
+  Added **P44–P51**. Key findings: `disallowedTools`≠sandbox with Bash (#12); analyzer blind to
+  `subagents/*.jsonl` (#15); secret false-positive on Bash strings (#16); approve-a-summary gap (#11);
+  workdir==repo-root collision (#10). **Next: PLAN item 21 (wrap), after discussing the testing
+  methodology (bootstrapped-python-repo starting point).**
 - 2026-09-09 — **Chunk 20 ✅ (build)**: built `implement-feature-plugin/analyzer/` — two decoupled
   readers (`runlog.py` load-bearing + `transcript.py` best-effort satellite), `report.py`,
   `analyze_run.py` (transcript quarantine), `_util.py`, `README.md`, 16 tests (ruff+mypy clean in the
