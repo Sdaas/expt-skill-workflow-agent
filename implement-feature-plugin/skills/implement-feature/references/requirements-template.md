@@ -1,7 +1,9 @@
 # Requirements — <feature name>
 
-> Written by the conductor at Gate 1 (INTERVIEW), approved by the human. This file —
-> not the conversation — is the inbox for downstream gates. Keep it self-sufficient.
+> Canonical handoff file: **`01-requirements.md`** (drafted at `handoff/draft/`, promoted
+> to `handoff/` on approval). Written by the conductor at Gate 1 (INTERVIEW), approved by
+> the human. This file — not the conversation — is the inbox for downstream gates. Keep it
+> self-sufficient.
 
 ## 1. Summary
 One paragraph: what the feature does and why, in the user's words.

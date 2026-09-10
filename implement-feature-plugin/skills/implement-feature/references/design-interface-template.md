@@ -1,9 +1,11 @@
 # Design — public interface: <feature name>
 
-> Gate 2 outbox. The **public contract only** — everything observable from outside the
-> feature, and NOTHING about the algorithm. This file is shared with the algorithm-blind
-> `test-writer`, so tests encode the contract, not the implementation. If a detail would
-> tell the reader *how* it works internally, it belongs in `design-internal.md`, not here.
+> Canonical handoff file: **`02-design-interface.md`** (Gate 2 outbox; drafted at
+> `handoff/draft/`, promoted on approval). The **public contract only** — everything
+> observable from outside the feature, and NOTHING about the algorithm. This file is
+> shared with the algorithm-blind `test-writer`, so tests encode the contract, not the
+> implementation. If a detail would tell the reader *how* it works internally, it belongs
+> in `03-design-internal.md`, not here.
 
 ## Public surface
 For each public function / class / endpoint:

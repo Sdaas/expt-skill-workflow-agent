@@ -1,8 +1,9 @@
 # Design — internal: <feature name>
 
-> Gate 2 outbox. The **algorithm and internal decisions**. Seen by the `implementer`,
-> `test-reviewer`, and `code-reviewer` — but **NEVER handed to the `test-writer`**
-> (that split is what keeps the tests algorithm-blind, P15).
+> Canonical handoff file: **`03-design-internal.md`** (Gate 2 outbox; drafted at
+> `handoff/draft/`, promoted on approval). The **algorithm and internal decisions**. Seen
+> by the `implementer`, `test-reviewer`, and `code-reviewer` — but **NEVER handed to the
+> `test-writer`** (that split is what keeps the tests algorithm-blind, P15).
 
 ## Approach
 The chosen algorithm/strategy, in enough detail to implement. Note the key steps.

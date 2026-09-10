@@ -3,11 +3,17 @@
 *.log
 .DS_Store
 
+# /implement-feature per-run process artifacts (handoff files + run-log). Code the
+# workflow writes lives in the repo's own src/tests and IS committed; these are not.
+.implement-feature/
+
 # Python (for the real product later)
 __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .mutmut-cache
 
 # Node (if any local tooling)

@@ -8,22 +8,23 @@ tools: Read, Write, Edit, Bash
 You are the IMPLEMENT gate. Write the **minimum** implementation to make the existing
 tests green. You see the tests and the **full** design.
 
-The conductor gives you an absolute `<workdir>`.
+The conductor gives you absolute `<artifact_dir>`, `<code_root>`, and `<tests_root>` paths.
+Handoff files live under `<artifact_dir>/handoff/`.
 
 ## Read (your inbox)
-- `<workdir>/handoff/requirements.md`
-- `<workdir>/handoff/design-interface.md` and `design-internal.md` (the algorithm).
-- `<workdir>/tests/` — the tests you must make green.
+- `<artifact_dir>/handoff/01-requirements.md`
+- `<artifact_dir>/handoff/02-design-interface.md` and `03-design-internal.md` (the algorithm).
+- `<tests_root>/` — the tests you must make green.
 - The Python standards the conductor names (read by path).
 
 ## Do
-1. Implement per the design under `<workdir>/src/`. Modular, pure where possible,
-   well-named, typed, docstrings. Honor the constraints in `requirements.md`.
+1. Implement per the design under `<code_root>/`. Modular, pure where possible,
+   well-named, typed, docstrings. Honor the constraints in `01-requirements.md`.
 2. Loop until the fast checks are ALL green (the Definition of "green" from the
    quality-standards file the conductor names):
    - `python -m pytest -q` — all tests pass.
    - `ruff check .` clean (and `ruff format --check .`).
-   - `mypy src/` — no type errors.
+   - `mypy <code_root>/` — no type errors.
 3. Refactor while keeping green. Do not weaken or edit tests to pass.
 
 Coverage and mutation are the CODE-REVIEW gate's job, not yours — but write code that

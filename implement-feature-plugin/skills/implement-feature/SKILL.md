@@ -22,75 +22,130 @@ downstream gate see a prior gate's raw transcript — only the **curated handoff
   `implement-feature:implementer`, `implement-feature:verifier`,
   `implement-feature:code-reviewer` — never the bare name. (Verified empirically.)
 
-**Workdir:** the feature's working directory `<workdir>` (agreed at Gate 0). Its
-handoff store is `<workdir>/handoff/`. Pass the absolute `<workdir>` in every
+### Two trees: product code vs process artifacts (P48)
+
+The workflow keeps two things strictly apart:
+
+- **Product** — the source and tests that ship. They live in the **repo's own layout**,
+  detected and confirmed at Gate 0: `<code_root>` (e.g. `src/`) and `<tests_root>`
+  (e.g. `tests/`). Feature-to-feature isolation is a **git branch** concern (Gate 0 / Gate
+  10), not a filesystem one — the code is written in place, in the repo.
+- **Process artifacts** — the handoff files and the run-log. They live in a **per-run
+  artifact dir**, gitignored, never mixed with shippable code:
+
+  ```
+  .implement-feature/                       # gitignored artifact root (repo-level)
+    .active-run                             # pointer + single-run lock (Gate 0 → Gate 10)
+    <NN-slug-YYYYMMDDHHMM>/                 # <artifact_dir>: one per run
+      handoff/
+        draft/                              # unapproved drafts (Gates 1,2,9); never read by a subagent
+        01-requirements.md … 08-code-review-findings.md
+        run-log.jsonl                       # the audit/orchestration log for this run
+  ```
+
+Pass the absolute **`<artifact_dir>`**, **`<code_root>`**, and **`<tests_root>`** in every
 subagent brief so each agent can resolve its inbox/outbox paths.
 
-**Handoff files (each gate reads a curated inbox, writes a defined outbox):**
+### Handoff files — numbered by human read-order (P50)
+
+Each handoff doc is prefixed with its **read-order number** so `handoff/` is
+self-documenting (browse it top-to-bottom to replay the run). Numbers are the read
+sequence, **not** the gate number (IMPLEMENT produces no doc), and are **stable under
+loops** — a re-review overwrites its numbered file, never mints a new one.
+
+| # | File | Produced at |
+|---|---|---|
+| `01-requirements.md` | Gate 1 INTERVIEW |
+| `02-design-interface.md` | Gate 2 DESIGN |
+| `03-design-internal.md` | Gate 2 DESIGN |
+| `04-test-plan.md` | Gate 2 DESIGN |
+| `05-test-intent.md` | Gate 3 WRITE-TESTS |
+| `06-test-review-findings.md` | Gate 4 TEST-REVIEW |
+| `07-verify-report.md` | Gate 6 VERIFY |
+| `08-code-review-findings.md` | Gate 7 CODE-REVIEW |
+
+`run-log.jsonl` stays **unnumbered** — it is the audit log spanning all gates, not part of
+the read-through narrative.
+
+**Each gate reads a curated inbox, writes a defined outbox:**
 
 | Gate | Reads (inbox) | Writes (outbox) |
 |---|---|---|
-| WRITE-TESTS [I] | `requirements.md` + `design-interface.md` + `test-plan.md` (**never** `design-internal.md`) | `tests/…` + `test-intent.md` |
-| TEST-REVIEW [I] | `requirements.md` + full design + tests + `test-intent.md` | `test-review-findings.md` |
-| IMPLEMENT [I] | tests + full design | `src/…` |
-| VERIFY [I] | `requirements.md` (ACs + boundary inventory) | `verify-report.md` |
-| CODE-REVIEW [I] | `requirements.md` + full design + whole diff | `code-review-findings.md` |
+| WRITE-TESTS [I] | `01-requirements.md` + `02-design-interface.md` + `04-test-plan.md` (**never** `03-design-internal.md`) | `<tests_root>/…` + `05-test-intent.md` |
+| TEST-REVIEW [I] | `01-requirements.md` + full design + tests + `05-test-intent.md` | `06-test-review-findings.md` |
+| IMPLEMENT [I] | tests + full design | `<code_root>/…` |
+| VERIFY [I] | `01-requirements.md` (ACs + boundary inventory) | `07-verify-report.md` |
+| CODE-REVIEW [I] | `01-requirements.md` + full design + whole diff | `08-code-review-findings.md` |
 
 The interface/internal design split (Gate 2) keeps the test-writer blind to the
-algorithm. **Never hand `design-internal.md` to the test-writer.**
+algorithm. **Never hand `03-design-internal.md` to the test-writer.**
 
 ## Quality standards (single source of truth)
 
 The toolchain, the Definition of "green", the coverage/mutation gates, and the
 concurrency policy live in **`references/quality-standards.md`** (in this skill's
-folder). Read it, and pass its **absolute path** to every subagent brief so each gate
-applies the same standard. This workflow is **prescriptive about the dev container** —
-it assumes the pinned toolchain from `toolchain/requirements-dev.txt` is installed.
+folder). Pass its **absolute path** to every subagent brief so each gate applies the same
+standard. This workflow is **prescriptive about the dev container** — it assumes the
+pinned toolchain from `toolchain/requirements-dev.txt` is installed.
 
 ## Observability & guardrails (enforced automatically)
 
 Two records, plus a hard guard, run alongside every gate:
 
 1. **Gate run-log (conductor-written).** Append one line to
-   `<workdir>/handoff/run-log.jsonl` as each gate completes:
+   `<artifact_dir>/handoff/run-log.jsonl` as each gate completes:
    `{gate, mode, agent, model, effort, inbox:[...], outbox:[...], result, ts}` — the
    orchestration story.
 2. **Guard hook audit (automatic).** The plugin ships a **PreToolUse hook**
    (`hooks/hooks.json` → `hooks/scripts/guard.py`) that fires for the conductor **and
    every subagent**, appending `{ts, agent_type, agent_id, tool, target}` for every
-   Read/Bash/Grep/Glob — a tamper-evident record of exactly what each agent read.
+   Read/Bash/Grep/Glob — a tamper-evident record of exactly what each agent read. The
+   hook finds the run-log via the `.active-run` pointer the conductor writes at Gate 0.
 3. **Guard hook enforcement (automatic, verified).** The same hook **denies**:
    - reading `.env` / keys / credentials / ssh keys — for **any** agent (security
      guardrail);
-   - reading `design-internal.md` — for the **test-writer** only (algorithm-blind), Read
+   - reading `03-design-internal.md` — for the **test-writer** only (algorithm-blind), Read
      *and* Bash; and
    - Edit/Write to any **test file** — for the **implementer** only (test-integrity: it
      must pass the tests, not change them).
    Each is defense-in-depth with the agents' own role instructions.
 
-The deterministic analyzer (built at the observability chunk) reads the hook audit
-(stable source of reads) and cross-checks the session transcript for per-agent
-**model + token** figures. See `../../../design/isolation-experiments.md` for the
-validation of all of the above.
+The deterministic analyzer reads the hook audit (stable source of reads) and cross-checks
+the session transcript for per-agent **model + token** figures. See
+`../../../design/isolation-experiments.md` for the validation of all of the above.
 
 ---
 
 ## Gate 0 — CLASSIFY + MODEL PLAN + PREFLIGHT  [C] ↔ human
 
-0. **Preflight (hard-fail).** Confirm we are inside the dev container and run the tool
+0. **Single-run lock (first action).** Check for `$CLAUDE_PROJECT_DIR/.implement-feature/.active-run`.
+   **If it exists, STOP** — a run is already in flight (or was interrupted mid-COMMIT).
+   Tell the human its contents (the active `<artifact_dir>`) and ask them to finish or
+   abandon that run before starting a new one. (There is no in-workflow resume yet; a
+   stale lock is removed by hand.)
+1. **Preflight (hard-fail).** Confirm we are inside the dev container and run the tool
    check from `references/quality-standards.md`
    (`ruff --version && mypy --version && pytest --version && python -c "import
    importlib.metadata as m; print('mutmut', m.version('mutmut'))"`). **Note:** mutmut is
    version-checked via package metadata, **not** `mutmut --version` — mutmut eagerly loads
    its config on *any* invocation and hard-fails outside a project with a discoverable
-   source layout (e.g. a bare scratch dir), so `mutmut --version` would false-fail the
-   preflight. **If any tool is missing, STOP** and tell the human to rebuild/enter the dev
-   container
+   source layout, so `mutmut --version` would false-fail the preflight. **If any tool is
+   missing, STOP** and tell the human to rebuild/enter the dev container
    (`.devcontainer` postCreate installs `toolchain/requirements-dev.txt`). Do not proceed.
-1. Restate the feature in **one sentence**.
-2. Propose the **workdir** (where code + `handoff/` will live) and confirm the stack
-   is **Python** (this workflow targets Python).
-3. Present the **per-gate model/effort plan** below. The invariant: **design and every
+2. Restate the feature in **one sentence**. Confirm the stack is **Python** (this
+   workflow targets Python).
+3. **Detect the code layout, human confirms.** Inspect `pyproject.toml` / `setup.cfg`,
+   the package dir, and `tests/` to propose `<code_root>` and `<tests_root>`. Present them;
+   the human confirms or corrects. Record both in the run-log.
+4. **Create the run's artifact dir + lock.** Derive a run id `<NN-slug-YYYYMMDDHHMM>`:
+   `NN` = GitHub issue # (`00` if none), `slug` = a short kebab slug from the feature,
+   timestamp = now. Then, **in this order**:
+   - `mkdir -p .implement-feature/<run>/handoff/draft`;
+   - write `.implement-feature/.active-run` containing the absolute `<artifact_dir>`
+     (this is both the guard's run-log pointer **and** the single-run lock);
+   - if `.implement-feature/` is not already in the repo `.gitignore`, **append it**
+     (create `.gitignore` if absent). Artifacts must never be committed.
+5. Present the **per-gate model/effort plan** below. The invariant: **design and every
    review use a higher model (or effort) than implementation.** The human may adjust
    any row.
 
@@ -108,8 +163,9 @@ validation of all of the above.
    Model IDs: Opus 4.8 = `claude-opus-4-8`; Sonnet 5 = `claude-sonnet-5`;
    Haiku 4.5 = `claude-haiku-4-5-20251001`.
 
-**STOP. Do not begin any work until the human confirms the workdir and the model plan.**
-Record the confirmed plan into `<workdir>/handoff/run-log.jsonl` (first entries).
+**STOP. Do not begin any work until the human confirms the code layout and the model plan.**
+Record the confirmed plan (with `<code_root>`, `<tests_root>`, `<artifact_dir>`) into
+`<artifact_dir>/handoff/run-log.jsonl` (first entries).
 
 ---
 
@@ -140,43 +196,53 @@ Interview to full clarity using a **grilling** approach. Do NOT guess scope.
 4. **Boundary inventory** — external boundaries (network/subprocess/fs/entrypoint/dep),
    each with how it will be exercised un-mocked at VERIFY. "None (pure feature)" is valid.
 
-**Close the gate:**
-- Summarize the four buckets back to the human.
-- **STOP. Do not write `requirements.md` or proceed until the human replies APPROVED.**
-- On approval, write `<workdir>/handoff/requirements.md` using
-  `references/requirements-template.md`. Append the run-log entry.
+**Close the gate (review the real artifact, then promote — P47):**
+- Author the requirements to a **draft**: `<artifact_dir>/handoff/draft/01-requirements.md`
+  (template `references/requirements-template.md`) so the human reviews the **real file**,
+  not a summary. Present its path and a short orientation.
+- **Bounded review/revise loop:** the human may hand-edit the draft directly and/or ask
+  you to revise. After each round **re-read the draft from disk** (hand-edits win). Bound
+  to ~3 rounds, then STOP-and-ask.
+- **STOP. Do not promote or proceed until the human replies APPROVED.**
+- On approval, **promote** (move) the draft to `<artifact_dir>/handoff/01-requirements.md`.
+  Downstream gates only ever read `handoff/`, never `handoff/draft/`. Append the run-log entry.
 
 ## Gate 2 — DESIGN / SPEC  [C] ↔ human
 
-Read `<workdir>/handoff/requirements.md`. Decide the solution's shape and write **three**
-handoff files (use the templates in `references/`).
+Read `<artifact_dir>/handoff/01-requirements.md`. Decide the solution's shape and author
+**three** draft handoff files under `<artifact_dir>/handoff/draft/` (templates in
+`references/`).
 
 **The interface / internal split (the mechanism that keeps the test-writer blind, P15):**
-- `<workdir>/handoff/design-interface.md` — the **public contract only** (signatures,
-  types, I/O, observable error/edge behavior, invariants). **Shared** with the
-  test-writer. Template: `references/design-interface-template.md`.
-- `<workdir>/handoff/design-internal.md` — the **algorithm**, data structures,
-  alternatives, complexity, quality expectations, risks. **Withheld** from the
-  test-writer; seen by implementer + reviewers. Template:
-  `references/design-internal-template.md`.
-  **Rule: nothing that reveals the algorithm may leak into `design-interface.md`.**
+- `draft/02-design-interface.md` — the **public contract only** (signatures, types, I/O,
+  observable error/edge behavior, invariants). **Shared** with the test-writer. Template:
+  `references/design-interface-template.md`.
+- `draft/03-design-internal.md` — the **algorithm**, data structures, alternatives,
+  complexity, quality expectations, risks. **Withheld** from the test-writer; seen by
+  implementer + reviewers. Template: `references/design-internal-template.md`.
+  **Rule: nothing that reveals the algorithm may leak into `02-design-interface.md`.**
 
-**The test plan** (`<workdir>/handoff/test-plan.md`, template
-`references/test-plan-template.md`) — consumed by test-writer, test-reviewer, and
-code-reviewer:
+**The test plan** (`draft/04-test-plan.md`, template `references/test-plan-template.md`) —
+consumed by test-writer, test-reviewer, and code-reviewer:
 - Enumerated tests (**unit / api / e2e**), each traced to an **AC or a boundary**;
   cover happy path, edges, negatives, and every boundary in the inventory.
 - **Coverage threshold** and **mutation kill-rate threshold** (the numbers Gate 7
   enforces via `pytest-cov` / `mutmut`).
-- If `requirements.md`'s boundary inventory flags the feature concurrent/async, the plan
+- If `01-requirements.md`'s boundary inventory flags the feature concurrent/async, the plan
   MUST include the property/stress/async tests + concurrency review focus (per
   `references/quality-standards.md`); otherwise state "No concurrency surface — skipped."
 
-**Close the gate:**
-- Present the approach + alternatives considered + the two design files + the test plan.
-  (For a complex feature, optionally spawn a fresh design-review subagent first.)
-- **STOP. Do not write the handoff files or proceed until the human replies APPROVED.**
-- On approval, write the three files and append the run-log entry.
+**Close the gate (review the real artifacts, then promote atomically — P47):**
+- Present the approach + alternatives considered, and point the human at the **three real
+  draft files** to read (not a summary). (For a complex feature, optionally spawn a fresh
+  design-review subagent first.)
+- **Bounded review/revise loop**, same as Gate 1: the human hand-edits and/or asks you to
+  revise; re-read the drafts from disk each round; bound to ~3 rounds then STOP-and-ask.
+  The design split is reviewed and approved **atomically** — interface + internal + plan
+  are promoted together on one approval (never a partial/interface-only approval).
+- **STOP. Do not promote the handoff files or proceed until the human replies APPROVED.**
+- On approval, **promote** all three drafts into `<artifact_dir>/handoff/` and append the
+  run-log entry.
 
 ## Gate 3 — WRITE-TESTS  [I] `test-writer`
 
@@ -186,13 +252,14 @@ yourself, and do NOT coach it on the algorithm.
 **Spawn it** via the Agent tool with `subagent_type: implement-feature:test-writer`
 (namespaced by plugin; its model/effort/tools are pinned in `agents/test-writer.md`). The
 brief you pass must contain ONLY:
-- the absolute `<workdir>`;
-- its inbox — read **`requirements.md` + `design-interface.md` + `test-plan.md`** and the
-  standards file (`references/quality-standards.md`, by the path you resolve);
-- the hard rule: **do NOT read `design-internal.md` or `src/`** — encode the contract,
-  not an implementation;
-- the task: implement the `test-plan.md` inventory under `<workdir>/tests/`, write
-  `<workdir>/handoff/test-intent.md`, and confirm the suite is red.
+- the absolute `<artifact_dir>`, `<code_root>`, and `<tests_root>`;
+- its inbox — read **`01-requirements.md` + `02-design-interface.md` + `04-test-plan.md`**
+  (under `<artifact_dir>/handoff/`) and the standards file
+  (`references/quality-standards.md`, by the path you resolve);
+- the hard rule: **do NOT read `03-design-internal.md` or `<code_root>/`** — encode the
+  contract, not an implementation;
+- the task: implement the `04-test-plan.md` inventory under `<tests_root>/`, write
+  `<artifact_dir>/handoff/05-test-intent.md`, and confirm the suite is red.
 
 **Exit condition (machine, not human):** the returned report must show the suite is
 **RED for the right reason** — tests exist and fail because the implementation is
@@ -206,11 +273,11 @@ findings file added to its inbox.)*
 
 An **independent** critic reviews the tests **before** any implementation exists. Spawn a
 **different** agent than the writer — `subagent_type: implement-feature:test-reviewer`
-(Opus/high per the model plan; read-only, pinned in `agents/test-reviewer.md`).
+(Opus/high per the model plan; pinned in `agents/test-reviewer.md`).
 
-**Its inbox (it sees more than the writer):** `requirements.md`, the **full** design
-(`design-interface.md` **and** `design-internal.md`), `test-plan.md`, the tests, and
-`test-intent.md`. (Only the *writer* is algorithm-blind; the reviewer is not.)
+**Its inbox (it sees more than the writer):** `01-requirements.md`, the **full** design
+(`02-design-interface.md` **and** `03-design-internal.md`), `04-test-plan.md`, the tests,
+and `05-test-intent.md`. (Only the *writer* is algorithm-blind; the reviewer is not.)
 
 **It must judge:**
 - **Intent match** — does each test assert the requirement, or only a proxy?
@@ -220,7 +287,7 @@ An **independent** critic reviews the tests **before** any implementation exists
   test plan (incl. the mutation cases behind the kill-rate target).
 - **No implementation leakage** — tests encode the contract, not one algorithm.
 
-It writes `<workdir>/handoff/test-review-findings.md` with a **verdict**:
+It writes `<artifact_dir>/handoff/06-test-review-findings.md` with a **verdict**:
 - **CHANGES-REQUESTED → bounded loop:** re-spawn `implement-feature:test-writer` with the
   findings file added to its inbox; then re-review. **Bound it:** after 2 rounds with no
   progress, STOP and surface to the human.
@@ -233,11 +300,11 @@ the changes on the next loop.
 
 Delegate to `subagent_type: implement-feature:implementer` (Sonnet/high; has
 Write/Edit/Bash, pinned in `agents/implementer.md`). Its inbox is the **tests** + the
-**full** design (`design-interface.md` + `design-internal.md`) + the standards file.
+**full** design (`02-design-interface.md` + `03-design-internal.md`) + the standards file.
 
 **Inner loop (machine condition, no human):**
-1. Write the **minimum** implementation under `<workdir>/src/` per the design; honor the
-   constraints in `requirements.md`.
+1. Write the **minimum** implementation under `<code_root>/` per the design; honor the
+   constraints in `01-requirements.md`.
 2. Run the **fast checks** until all pass — **"green" = `pytest` passes AND `ruff` clean
    AND `mypy` clean** (per `references/quality-standards.md`).
 3. Refactor while keeping green.
@@ -246,7 +313,7 @@ Write/Edit/Bash, pinned in `agents/implementer.md`). Its inbox is the **tests** 
 pass.** The tests are the approved, independently-reviewed contract (Gates 3–4). Enforced
 in depth: (a) the **guard hook denies the implementer any Edit/Write to a test file**
 (keyed on `agent_type`, same mechanism as the algorithm-blind rule); (b) this prose rule;
-(c) the whole-diff CODE-REVIEW (Gate 7), which flags any change under `tests/`.
+(c) the whole-diff CODE-REVIEW (Gate 7), which flags any change under `<tests_root>/`.
 
 Exit when green; append the run-log entry, then proceed to VERIFY. (Coverage + mutation
 are the slow checks, enforced at CODE-REVIEW — not here.)
@@ -256,8 +323,8 @@ are the slow checks, enforced at CODE-REVIEW — not here.)
 **Green unit tests are not Done.** Spawn a **fresh, read-only** verifier —
 `subagent_type: implement-feature:verifier` (Sonnet/high; observes, cannot fix — pinned in
 `agents/verifier.md`). It did not write the code, so it won't drive it the way the author
-expects. Its inbox: `requirements.md` (the ACs + boundary inventory) and `src/` (to invoke
-the real thing, not to trust it).
+expects. Its inbox: `01-requirements.md` (the ACs + boundary inventory) and `<code_root>/`
+(to invoke the real thing, not to trust it).
 
 **It must:**
 1. For **each acceptance criterion**, invoke the **real** public function/flow and confirm
@@ -265,11 +332,11 @@ the real thing, not to trust it).
 2. For **every external boundary** in the inventory, exercise it **un-mocked** at least
    once (a mocked test only proved the mock). If the inventory is "None (pure feature)",
    verify on the acceptance examples and say so.
-3. If `requirements.md` flagged concurrency, run the stress/property checks per
+3. If `01-requirements.md` flagged concurrency, run the stress/property checks per
    `references/quality-standards.md`.
 
-It writes `<workdir>/handoff/verify-report.md`: per-AC **observed** PASS/FAIL with the
-actual value, the boundary drives performed, and an overall verdict.
+It writes `<artifact_dir>/handoff/07-verify-report.md`: per-AC **observed** PASS/FAIL with
+the actual value, the boundary drives performed, and an overall verdict.
 
 **This is the OUTER loop.** On any FAIL → go **back to IMPLEMENT (Gate 5)** — re-enter the
 inner loop, fix, re-green, then re-VERIFY (bounded; surface to the human if it won't
@@ -281,34 +348,35 @@ Spawn a fresh, read-only whole-diff reviewer —
 `subagent_type: implement-feature:code-reviewer` (Opus/high; pinned in
 `agents/code-reviewer.md`). "One senior engineer reviewing the entire PR": fresh context
 kills anchoring, a stronger model than the implementer kills monoculture. Its inbox:
-`requirements.md` + the full design + the **whole change** (tests + `src/`) + the standards.
+`01-requirements.md` + the full design + the **whole change** (tests + `<code_root>/`) +
+the standards.
 
 **It reviews across six quality dimensions** (borrowed from the `claude-sdlc` profile
 backbone — scale each to the feature; state **`N/A — why`**, never silently drop one):
 1. **Best practices** — modularity/cohesion, purity/side-effects, naming, typing, docstrings;
-   idiomatic Python; the constraints in `requirements.md` honored.
+   idiomatic Python; the constraints in `01-requirements.md` honored.
 2. **Performance & scale** — the measurable signals the design flagged; no accidental
    O(n²)/N+1 or unbounded growth.
 3. **Testing pyramid** — the **slow checks** live here (deferred by split-by-speed):
-   **coverage** (`pytest --cov=src`) and **mutation** (`mutmut run` → kill-rate) vs the
-   `test-plan.md` thresholds. Surviving mutants = weak tests; call out untested lines.
+   **coverage** (`pytest --cov=<code_root>`) and **mutation** (`mutmut run` → kill-rate) vs
+   the `04-test-plan.md` thresholds. Surviving mutants = weak tests; call out untested lines.
 4. **Security** — injection/quoting, secrets, filesystem, dependency surface.
 5. **Reliability & resilience** — timeout/retry/backoff/idempotency at every boundary in the
-   inventory; concurrency (races/deadlocks/ordering/cancellation) if `requirements.md` flagged it.
+   inventory; concurrency (races/deadlocks/ordering/cancellation) if `01-requirements.md` flagged it.
 6. **Observability & logging** — the change is diagnosable (levels, messages) per policy.
 
 Plus two cross-cutting checks: **whole-diff consistency** (no dead/speculative code) and
-**test-integrity** (flag **any change under `tests/`** — the implementer must not have altered
-them). Fast checks (`ruff`/`mypy`/unit `pytest`) were gated in IMPLEMENT — confirm they still
-pass; spend the effort on the six dimensions + the slow checks.
+**test-integrity** (flag **any change under `<tests_root>/`** — the implementer must not have
+altered them). Fast checks (`ruff`/`mypy`/unit `pytest`) were gated in IMPLEMENT — confirm they
+still pass; spend the effort on the six dimensions + the slow checks.
 
-It writes `<workdir>/handoff/code-review-findings.md` with **every finding TYPED with a repair
-target**, and a **verdict**:
+It writes `<artifact_dir>/handoff/08-code-review-findings.md` with **every finding TYPED with a
+repair target**, and a **verdict**:
 - **APPROVE →** append the run-log entry and proceed to the human gates (8–10).
 - **CHANGES-REQUESTED → route each finding by its type (one review pass, two repair paths — P37):**
   - **`→IMPLEMENT`** — *code* defects (correctness, best-practice, reliability/perf,
     observability wiring, **dead-code deletion**) → back to **IMPLEMENT (Gate 5)**; the
-    implementer edits `src/` only.
+    implementer edits `<code_root>/` only.
   - **`→TESTS`** — *weak/missing tests* (surviving mutants, coverage gaps that are missing
     tests) → back to **WRITE-TESTS (Gate 3)** then **TEST-REVIEW (Gate 4)**. New tests must
     themselves be independently reviewed before re-use — the implementer is **barred** from
@@ -324,9 +392,9 @@ Findings of both types in one round dispatch to both actors. After repair, re-co
 Make the human's review fast and focused — **guide the eye; do not dump a diff.** Present:
 - the list of **changed files**, with a recommended **review order**;
 - **one line per file** — why it matters / where the key change is;
-- **pointers to every findings file**: `handoff/test-review-findings.md`,
-  `handoff/verify-report.md`, `handoff/code-review-findings.md`, and the audit
-  `handoff/run-log.jsonl` (what each agent did, which model, what it read).
+- **pointers to every findings file** under `<artifact_dir>/handoff/`:
+  `06-test-review-findings.md`, `07-verify-report.md`, `08-code-review-findings.md`, and
+  the audit `run-log.jsonl` (what each agent did, which model, what it read).
 
 The observability from every gate pays off here: the human can drill into any agent's work
 rather than re-reviewing everything from scratch.
@@ -336,13 +404,15 @@ rather than re-reviewing everything from scratch.
 **STOP. Do not commit. Wait for the human to review and reply APPROVED.** If the human
 requests changes, route them to the relevant gate (e.g. a logic fix → IMPLEMENT; a missing
 test → back through WRITE-TESTS/TEST-REVIEW), then re-run forward and re-present at Gate 8.
-The human owns the decision to ship — nothing here is automatic.
+The human owns the decision to ship — nothing here is automatic. The same "review the real
+artifact" discipline (P47) applies: point the human at the actual files, never only a summary.
 
 ## Gate 10 — COMMIT  [C]  (Sonnet/Haiku)
 
 **Only after the human replied APPROVED** (the hard rule from Gate 0): commit the change
 with a clear message referencing the feature and its acceptance criteria. This is the
-**only** gate that writes to git history.
+**only** gate that writes to git history. The gitignored `.implement-feature/` artifact dir
+is **never** part of the commit.
 
 **Authorship = the repo's configured git identity (P39).** This plugin ships to other users,
 so it **never** hardcodes an author or email. Let `git commit` resolve `user.name` /
@@ -355,14 +425,18 @@ they use one; otherwise omit it) — never a hardcoded name.
 (In a repo with branch/PR conventions: commit on the feature branch, push — the pre-push
 hook runs the tests — and open a PR; merge only on green CI + approval.)
 
-Append the final run-log entry. The pipeline (Gates 0–10) is complete.
+Append the final run-log entry. **Then, only after the commit succeeds, clear the lock:**
+delete `$CLAUDE_PROJECT_DIR/.implement-feature/.active-run`. (An interrupted COMMIT
+correctly still looks active until the commit lands.) The pipeline (Gates 0–10) is complete.
 
 ---
 
 ## Rules
 - Curated handoffs only — a gate never sees a prior gate's raw transcript.
-- The test-writer is blind to `design-internal.md`.
+- The test-writer is blind to `03-design-internal.md`.
 - Design & every review use a higher model/effort than implementation.
 - Not Done on green tests alone — VERIFY observed behavior.
 - Bound every automated loop; surface to the human on no progress.
-- Review before commit.
+- Never ask a human to approve an artifact they have not seen in full (P47).
+- Product code lives in the repo; process artifacts live in the gitignored `.implement-feature/`.
+- Review before commit; the artifact dir is never committed.

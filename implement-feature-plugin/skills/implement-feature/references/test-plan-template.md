@@ -1,7 +1,8 @@
 # Test plan: <feature name>
 
-> Gate 2 outbox. Enumerates the tests that will PROVE the feature, and the thresholds
-> the CODE-REVIEW gate enforces. Consumed by `test-writer` (what to write),
+> Canonical handoff file: **`04-test-plan.md`** (Gate 2 outbox; drafted at `handoff/draft/`,
+> promoted on approval). Enumerates the tests that will PROVE the feature, and the
+> thresholds the CODE-REVIEW gate enforces. Consumed by `test-writer` (what to write),
 > `test-reviewer` (is it covered?), and `code-reviewer` (thresholds met?).
 
 ## Test inventory

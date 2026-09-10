@@ -213,9 +213,15 @@ Update this section as work proceeds — it is the resume anchor.
 - [x] Issue hygiene: created auto-install(v1.1) issue #19; labelled backlog (#9, #18, #19 → `v1.1`/`v2`); closed #4 (analyzer built ch.20; residual tracked in #15); #2 noted moot.
 - [x] Two plan additions folded in: DG absorbs PATTERNS anti-patterns+traps (not just best practice); feature #2 = file-I/O + async-REST + fault injection.
 
-### Phase 1 — Pile-1 fixes — ⬜ NOT STARTED
-- [ ] #10 + #17 — per-feature artifact/handoff dir, numbered files, single-run lock
-- [ ] #11 — STOP gates present the real artifact (draft → revise → promote)
+### Phase 1 — Pile-1 fixes — 🔶 IN PROGRESS
+- [x] **#10 + #17 + #11** — per-feature artifact dir (`.implement-feature/<run>/`), numbered
+  handoff files (`01-…`–`08-…`), `.active-run` pointer+lock, code-root/tests-root split,
+  draft→promote review loop. SKILL.md rewritten; guard.py (pointer-file run-log resolution +
+  deny subagent reads under `handoff/draft/`); all `agents/*.md` + `references/*-template.md`
+  updated to numbered names + `<artifact_dir>`/`<code_root>`/`<tests_root>`; analyzer gains
+  `--workdir`; `.gitignore` gets `.implement-feature/`. New `hooks/tests/test_guard.py`
+  (9 tests). Patterns P47–P51 already in PATTERNS.md (captured ch.21); SKILL refs aligned.
+  **25 unit tests green** (16 analyzer + 9 guard).
 - [ ] #8 — triviality assessment + branch recommendation; never commit on main
 - [ ] #5 — kill reference-file read-tax
 - [ ] #16 (+#1) — secret false-positive on Bash strings; drop dead basename block

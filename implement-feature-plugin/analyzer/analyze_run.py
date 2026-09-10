@@ -1,8 +1,9 @@
 """CLI entry point for the /implement-feature observability analyzer.
 
-    python -m implement_feature_plugin.analyzer.analyze_run --runlog if-runlog.jsonl
-    # or, from inside implement-feature-plugin/:
-    python -m analyzer.analyze_run --runlog /path/to/if-runlog.jsonl
+    # from inside implement-feature-plugin/ — primary handle is the run's artifact dir:
+    python -m analyzer.analyze_run --workdir /path/to/.implement-feature/<run>/
+    # or point straight at a run-log:
+    python -m analyzer.analyze_run --runlog /path/to/run-log.jsonl
 
 This is the ONLY place that orchestrates the two readers and quarantines the
 best-effort transcript satellite. Order of operations:
@@ -82,10 +83,19 @@ def build_report(runlog_path: str, projects_root: Path | None, slug: str | None,
     return report.assemble(sections)
 
 
+def _runlog_from_workdir(workdir: str) -> str:
+    """A run's artifact dir holds its run-log at <workdir>/handoff/run-log.jsonl (#10)."""
+    return str(Path(workdir) / "handoff" / "run-log.jsonl")
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Analyze an /implement-feature run.")
-    p.add_argument("--runlog", default=_default_runlog(),
-                   help="path to if-runlog.jsonl (default: $IF_RUNLOG or ./if-runlog.jsonl)")
+    p.add_argument("--workdir", default=None,
+                   help="the run's artifact dir (.implement-feature/<run>/); the run-log is "
+                        "derived as <workdir>/handoff/run-log.jsonl. Primary handle.")
+    p.add_argument("--runlog", default=None,
+                   help="explicit path to run-log.jsonl (overrides --workdir; default: "
+                        "$IF_RUNLOG or ./if-runlog.jsonl)")
     p.add_argument("--projects-dir", default=None,
                    help="Claude Code projects dir (default: ~/.claude/projects)")
     p.add_argument("--slug", default=None,
@@ -94,9 +104,15 @@ def main(argv: list[str] | None = None) -> int:
                    help="skip the best-effort transcript/token analysis")
     args = p.parse_args(argv)
 
+    # Resolve the run-log: explicit --runlog wins, else derive from --workdir, else default.
+    runlog = args.runlog or (_runlog_from_workdir(args.workdir) if args.workdir
+                             else _default_runlog())
+    args.runlog = runlog
+
     if not Path(args.runlog).is_file():
         print(f"error: run-log not found: {args.runlog}", file=sys.stderr)
-        print("(nothing to report without the run-log; pass --runlog PATH)", file=sys.stderr)
+        print("(nothing to report without the run-log; pass --workdir DIR or --runlog PATH)",
+              file=sys.stderr)
         return 2
 
     projects_root = Path(args.projects_dir) if args.projects_dir else None
