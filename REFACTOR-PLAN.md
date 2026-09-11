@@ -29,7 +29,14 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
 - **Phase 2 (ii): DONE 2026-09-11** — the confirming minimal `slugify` dry run ran green
   (P56+P57 confirmed live; 5/5 isolation after the heredoc fix). Five fixes + 2 backlog issues
   landed this session; see §5 Phase 2 (ii). **Host: 65 unit tests green.**
-- **Phase 4: STARTED 2026-09-11, NOT YET COMPLETE.** Chose Phase 4 first (per the §0 recommendation).
+- **Phase 4: ✅ DONE 2026-09-11.** Both halves of the done-bar met: the green end-to-end dry run
+  (`CachedFetcher`, commit `7047829`) AND the fault-injection pass. The model-pinning finding is
+  resolved (pin IS honored — see the resolved-finding note below) and the fault-injection
+  verification pass (`httpx.MockTransport`: timeouts + 502/503/504 + concurrency-under-fault) ran
+  green against the real feature — **no bug**, but it surfaced a resiliency-review methodology gap
+  (transport-level faults never enumerated) recorded in `design/fault-injection-findings.md`. See
+  §5 Phase 4 for detail. **NEXT: Phase 3 (docs).**
+- **Phase 4 (historical): STARTED 2026-09-11.** Chose Phase 4 first (per the §0 recommendation).
   Fixture `~/test-implement-feature` bootstrapped for it (`webcache` src-layout pkg, `httpx`,
   `asyncio_mode=auto`). Ran `/implement-feature` end-to-end (gates 0→11) for the **async cached
   JSON fetcher** feature (`CachedFetcher`), ending in a **real commit `7047829`** on
@@ -62,11 +69,13 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
 - **NEXT (resume here), in order:**
   1. ✅ DONE — model-pinning re-audit complete: pin IS honored, `design/model-pinning-findings.md`
      closed, SKILL.md note confirmed correct (no edit).
-  2. Run the **fault-injection pass** (network timeouts, 5xx) against the async fetcher feature to
-     actually finish Phase 4. **Mechanism decided: `httpx.MockTransport`** (deterministic, no
-     network/extra process, fits the pinned toolchain).
-  3. Then **Phase 3** (docs) — README router + UG + DG + Tutorial, absorbing PATTERNS/TUTORIAL/etc.
-     per §3 doc-fate map, describing the now-finished reality.
+  2. ✅ DONE — fault-injection pass (`httpx.MockTransport`) ran green against the real
+     `CachedFetcher` (timeouts + broad 5xx + concurrency-under-fault; no bug). Gap recorded in
+     `design/fault-injection-findings.md`. **Phase 4 is now complete.**
+  3. **Phase 3 (NEXT)** — docs: README router + UG + DG + Tutorial, absorbing PATTERNS/TUTORIAL/etc.
+     per §3 doc-fate map, describing the now-finished reality. The two design findings
+     (`model-pinning-findings.md`, `fault-injection-findings.md`) feed the DG's ADRs + testing
+     methodology + design-principles sections.
 
   **Dry-run mechanics (confirmed, see memory `phase2-dryrun-mechanics`):** the container's
   directory-source marketplace loads the plugin **from the workspace**
@@ -387,7 +396,7 @@ Update this section as work proceeds — it is the resume anchor.
 
 ### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
 
-### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — 🔶 IN PROGRESS 2026-09-11
+### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — ✅ DONE 2026-09-11
 - **Ran** `/implement-feature` for the async cached JSON fetcher (`CachedFetcher`) on
   `~/test-implement-feature` (`webcache` src-layout pkg, `httpx`, `asyncio_mode=auto`), all gates
   0→11, ending in a real commit `7047829` on `feature/00-async-cached-json-fetcher` (never on
@@ -407,9 +416,22 @@ Update this section as work proceeds — it is the resume anchor.
     `claude-opus-4-8` pin was not honored (ground truth said `claude-opus-5` actually ran) —
     **this session's direct re-check of the same run's transcripts contradicts that claim** (see
     §0 NEXT). **Unresolved — do not treat either document as settled.**
-- **NOT done yet:** the fault-injection pass (timeouts, 5xx against the un-mocked VERIFY gate) that
-  Phase 4's definition of done requires. Phase 4 is **not** a completed phase.
-- Unit tests: 65 green on host (unchanged this phase; all fixes were prose/SKILL-only).
+- **Model-pinning finding RESOLVED** (2026-09-11): re-audited all four transcript sessions from raw
+  `message.model`; the dated `claude-opus-4-8` reviewer pin **IS honored** in every post-pin
+  session (incl. the committed run, session `251d3474`). Earlier "not honored" misattributed a
+  Sep-10 pre-pin `parse_duration` session. `design/model-pinning-findings.md` closed; SKILL.md note
+  (`133025c`) confirmed correct. Commit `2b49b3e`.
+- **Fault-injection pass DONE** (2026-09-11): `httpx.MockTransport` faults against the real
+  `CachedFetcher` — `ReadTimeout`/`ConnectTimeout` propagate + not cached; 500/502/503/504 uniform
+  + not cached; 10 coalesced callers under a timeout share one request. 9 tests; full fixture suite
+  **64 passed / 100% cov**; ruff+mypy clean. Committed in the fixture repo (`3e467d2`, feature
+  branch). **No bug in the feature.** Surfaced a resiliency-review methodology gap (transport-level
+  faults — timeouts/connect failures — were never enumerated by the test-plan/review, only
+  response-level 5xx/bad-body were); requirements *correctly* scoped *configurable* timeout out as a
+  non-goal. Full write-up + a proposed small plugin nudge in `design/fault-injection-findings.md`
+  (deferred: fold into Phase 3 DG, or a minimal edit now — user's call).
+- Unit tests: 65 green on host (plugin unit tests unchanged this phase; fault-injection tests live
+  in the ephemeral container fixture, not the plugin repo).
 
 ### Phase 5 — Merge prep + merge to `main` — ⬜ NOT STARTED
 
