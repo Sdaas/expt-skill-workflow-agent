@@ -276,7 +276,10 @@ toy-greet-plugin/              # tutorial example
 - **Two green dry runs = done.**
 
 ### Phase 5 — Merge prep
-- Final `README.md` + `CLAUDE.md` pass; delete this `REFACTOR-PLAN.md`.
+- Final `README.md` + **`CLAUDE.md` rewrite** (drop the mid-refactor banner → steady-state guide);
+  **rename the marketplace** off `toy-local-marketplace` and fix every reference; delete this
+  `REFACTOR-PLAN.md` **and `RESUME.md`**.
+- Verify install-from-GitHub for real in a clean container (open risk).
 - Close every addressed issue with a commit reference.
 - Merge `refactor/shippable-plugin` → `main`.
 
@@ -468,7 +471,25 @@ Six logical commits on `refactor/shippable-plugin`:
 - Unit tests: 65 green on host (plugin unit tests unchanged this phase; fault-injection tests live
   in the ephemeral container fixture, not the plugin repo).
 
-### Phase 5 — Merge prep + merge to `main` — ⬜ NOT STARTED
+### Phase 5 — Merge prep + merge to `main` — ⬜ NOT STARTED (NEXT)
+Checklist:
+- [ ] **Rewrite `CLAUDE.md`** — drop the "⚠️ repo is mid-refactor" banner and the paced-tutorial
+  retirement language; drop the "Resuming a session" block that points at `REFACTOR-PLAN.md`/`RESUME.md`.
+  Keep the accurate, durable orientation (what the repo is, the conductor + isolated-gates architecture,
+  the guard hook, quality standards, the dev-container test harness, working conventions). It should read
+  as the steady-state guide for working in a *shipped* repo, not a refactor-in-progress.
+- [ ] **Name the marketplace properly** — rename `toy-local-marketplace` in
+  `.claude-plugin/marketplace.json` to a real name (e.g. `daas-plugins` / `implement-feature-marketplace`
+  — pick one). Update every reference: `docs/user-guide.md` (install commands + the "leftover name" note,
+  which can then be removed), `docs/tutorial.md` (the `toy-greet` install walkthrough), `DEVCONTAINER.md`
+  (the enabled-marketplaces note), and the dry-run fixture's `.claude/settings.json` if it hardcodes it.
+- [ ] **Final `README.md` pass** — re-read top-to-bottom against the now-final tree; fix anything stale.
+- [ ] **Verify install-from-GitHub for real** (open risk) — in a clean container, `marketplace add` from
+  the GitHub repo + `install implement-feature@<new-name>`, confirm the UG's documented flow actually
+  works end-to-end (this hits the cache path, unlike our workspace-source dry runs).
+- [ ] **Close addressed issues** with commit references (Phase 1 #s, #3, #5, #6, #7, #8, #10–#17, etc.).
+- [ ] **Delete the transient files** — `REFACTOR-PLAN.md` (this file) and `RESUME.md`.
+- [ ] **Merge** `refactor/shippable-plugin` → `main`.
 
 ---
 

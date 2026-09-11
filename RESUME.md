@@ -1,77 +1,86 @@
 # RESUME — shippable-plugin refactor
 
-> Transient resume aid (like `REFACTOR-PLAN.md`; both are deleted at merge — Phase 5).
+> Transient resume aid (like `REFACTOR-PLAN.md`; **both are deleted in Phase 5 itself**).
 > The authoritative state is **`REFACTOR-PLAN.md` §0 + §5**. This file just holds a
 > paste-ready prompt and the environment steps.
+
+## Where we are
+
+Phases **0, 1, 2, 2(ii), 4, and 3** are all **DONE**. **Phase 5 (merge prep) is the only phase left.**
+Phase 3 (docs) landed in 6 commits: the root `README.md` router, `docs/{user-guide,developer-guide,
+tutorial}.md`, the transport-fault plugin nudge, and the doc-fate deletes (PATTERNS / TUTORIAL /
+LAUNCHING-SUBAGENTS / PLAN / REVIEW-READING-ORDER / the whole `design/` dir, all absorbed into the DG
+and Tutorial). Host unit tests: **65 green**.
 
 ## Paste this into a fresh Claude Code session
 
 ```
-Read REFACTOR-PLAN.md (on branch refactor/shippable-plugin) — §0 CURRENT STATE and §5 tell
-you where we are — and recall the project memories. Phases 0–2(ii) are done. Phase 4 was
-started (not Phase 3): the async cached JSON fetcher feature (`CachedFetcher`) ran end-to-end
-through all gates in the container and landed a real commit (`7047829`) on
-`feature/00-async-cached-json-fetcher`. Three fixes are already committed on this branch: the
-Gate 0 STOP-summary restyle, a non-importable-package preflight/RED-classification fix, and a
-container UX provisioning commit, plus a corrected Gate 0 note about reviewer model pinning.
-Do NOT revert to the old paced-tutorial workflow. Commit per logical unit; update §5 as you go.
+Read REFACTOR-PLAN.md (on branch refactor/shippable-plugin) — §0 CURRENT STATE and §5 tell you
+where we are — and recall the project memories. All phases are done EXCEPT Phase 5 (merge prep).
+Do the Phase 5 checklist in REFACTOR-PLAN.md §5, committing per logical unit. Do NOT revert to the
+old paced-tutorial workflow. In order:
 
-ONE thing is open before Phase 4 can be called done:
+1. REWRITE CLAUDE.md. It still opens with a "⚠️ this repo is mid-refactor" banner and a
+   "Resuming a session" block that points at REFACTOR-PLAN.md/RESUME.md — remove those. Keep the
+   accurate, durable content (what the repo is; the conductor + isolated-gates architecture; the
+   guard hook; quality standards/toolchain; the dev-container test harness; working conventions).
+   It must read as the steady-state guide for a SHIPPED repo, not a refactor-in-progress. The docs/
+   now hold the audience-facing detail — CLAUDE.md should point at them, not duplicate them.
 
-1. ✅ DONE — model-pinning re-audit. Settled from raw transcripts across all four sessions:
-   the dated `claude-opus-4-8` reviewer pin **IS honored** in every post-pin session (incl. the
-   committed Phase 4 run, session `251d3474`). The earlier "not honored" claim misattributed a
-   Sep-10 pre-pin `parse_duration` session to Phase 4. `design/model-pinning-findings.md` is
-   closed; the Gate 0 SKILL.md note (`133025c`) was confirmed correct as written.
-2. **Run the fault-injection pass** (network timeouts, 5xx responses) against the async fetcher
-   feature — the second half of Phase 4's done-bar (the un-mocked VERIFY gate, the resiliency
-   review dimension, and the concurrency policy need to be genuinely exercised, not just
-   asserted). **Mechanism decided: `httpx.MockTransport`** (deterministic, no network / no extra
-   process, fits the pinned toolchain).
+2. NAME THE MARKETPLACE PROPERLY. .claude-plugin/marketplace.json is still named
+   "toy-local-marketplace" (a tutorial leftover). Rename it to a real name (ASK the user which, or
+   propose one like "daas-plugins"), then update EVERY reference:
+     - docs/user-guide.md — the `claude plugin install implement-feature@<name>` commands AND the
+       "Note on the marketplace name" paragraph (which can be deleted once the name is real), plus
+       the uninstall command in the FAQ.
+     - docs/tutorial.md — the toy-greet install walkthrough (`install toy-greet@<name>`).
+     - DEVCONTAINER.md — the "enabled plugins/marketplaces" note (§ Claude Code UX).
+     - .devcontainer/claude/settings.json (or wherever the dry-run fixture enables marketplaces) if
+       it hardcodes the old name.
+   Grep the repo for `toy-local-marketplace` to be sure nothing is missed.
 
-Only after the fault-injection pass lands does Phase 4 count as done — then move to Phase 3
-(docs: README router + user-guide.md + developer-guide.md + tutorial.md, absorbing
-PATTERNS/TUTORIAL/LAUNCHING-SUBAGENTS per the §3 doc-fate map).
+3. FINAL README.md PASS — re-read against the final tree; fix anything stale.
+
+4. VERIFY INSTALL-FROM-GITHUB FOR REAL (open risk, §6) — in a clean container: marketplace add from
+   the GitHub repo, then install implement-feature@<new-name>, and confirm the User Guide's
+   documented flow actually works end-to-end (this hits the ~/.claude/plugins cache path, unlike our
+   workspace-source dry runs).
+
+5. CLOSE ADDRESSED ISSUES with commit references, then DELETE the transient files
+   (REFACTOR-PLAN.md AND RESUME.md), and MERGE refactor/shippable-plugin → main.
 ```
 
-## Environment — container is already up and populated, no re-bootstrap needed
+## Environment — dev container (rebuild only if you need step 4)
 
-The login lives in the named volume `expt-skill-workflow-claude`. The container
-(`vibrant_kapitsa` as of 2026-09-11) was left **running**, with the fixture already scaffolded
-and the Phase 4 run's artifacts intact — do **not** tear it down or re-bootstrap the fixture
-before checking what's there.
+The plugin is never installed into the Mac's global `~/.claude`; for our testing it runs inside a dev
+container with its own isolated `~/.claude` (login persisted in the named volume
+`expt-skill-workflow-claude`). Steps 1–3 + 5 are pure repo edits on the Mac and need no container. Only
+step 4 (real install-from-GitHub verification) needs a running container.
 
 1. `cd /Users/sdaas/dev/expt-skill-workflow-agent`
-2. Check the container is still up: `docker ps -a | grep expt` (or `devcontainer up
-   --workspace-folder .` — idempotent, only rebuilds if the container is actually gone).
-3. Shell in: `devcontainer exec --workspace-folder . bash` (or `docker exec -it <name> bash`),
-   then `cd ~/test-implement-feature`.
-4. `git log --oneline -3` should show `7047829 Add async cached JSON fetcher (CachedFetcher)...`
-   on `feature/00-async-cached-json-fetcher`. `git diff --stat` shows ~3 lines of uncommitted
-   local drift in `.claude/settings.json`/`.gitignore` from the run — harmless, review before
-   continuing.
-5. The plugin loads **directly from the workspace** (directory-source marketplace) — the
-   `~/.claude/plugins/cache` copy is **vestigial**, so there is **no cache-sync step**. A
-   workspace edit (e.g. from step 1 above) takes effect after a **fresh container Claude
-   session restart** (SKILL/agents load at startup; the `guard.py` hook reloads per tool call).
-6. The run's handoff + transcripts are still on disk:
-   `~/test-implement-feature/.implement-feature/00-async-cached-json-fetcher-202609110808/` and
-   `~/.claude/projects/-home-vscode-test-implement-feature/251d3474-c0c0-4d49-b39e-34af100f71ff*`
-   — use these for the model-pinning re-audit (step 1 of the resume prompt above) before
-   starting anything new.
+2. `docker ps -a | grep expt` (or `devcontainer up --workspace-folder .` — idempotent, rebuilds only
+   if the container is gone or `.devcontainer/*` changed).
+3. Shell in: `devcontainer exec --workspace-folder . bash`; or jump straight into Claude Code inside:
+   `devcontainer exec --workspace-folder . claude`.
+4. Note the plugin loads **from the workspace** (`/workspaces/expt-skill-workflow-agent/
+   implement-feature-plugin/**`), not the vestigial `~/.claude/plugins/cache` copy — so a workspace
+   edit takes effect after a **fresh container Claude session restart**, with **no cache-sync step**.
+   BUT step 4's real install-from-GitHub verification deliberately exercises the *cache* path (that's
+   what a real end user hits), so do it as a fresh `marketplace add <github repo>` + `install`, not
+   against the workspace source.
 
-## Analyzer over a run
+## Host unit-test harness (steps 1–3 don't change code, but handy)
+`/tmp` is volatile — recreate:
+`python3 -m venv /tmp/if-venv.tmp && /tmp/if-venv.tmp/bin/pip install pytest`, then
+`/tmp/if-venv.tmp/bin/python -m pytest implement-feature-plugin -q` (expect **65** passing).
+Full toolchain (ruff/mypy/mutmut) only runs in-container.
+
+## Analyzer over a run (reference; not needed for Phase 5 unless re-verifying a dry run)
 ```
 devcontainer exec --workspace-folder . bash -lc '
   cd ~/test-implement-feature
   PYTHONPATH=/workspaces/expt-skill-workflow-agent/implement-feature-plugin \
     python3 -m analyzer.analyze_run --workdir ~/test-implement-feature/.implement-feature/<run>/'
 ```
-(`--no-transcript` = fast isolation-only pass; `--out PATH` also saves the report — Gate 11
-writes `<artifact_dir>/run-report.md`.) Run with cwd = the fixture dir so the transcript slug resolves.
-
-## Host unit-test harness
-`/tmp` is volatile — recreate:
-`python3 -m venv /tmp/if-venv.tmp && /tmp/if-venv.tmp/bin/pip install pytest`, then
-`/tmp/if-venv.tmp/bin/python -m pytest implement-feature-plugin -q` (expect **65** passing).
-Full toolchain (ruff/mypy/mutmut) only runs in-container.
+(`--no-transcript` = fast isolation-only pass; `--out PATH` also saves the report — Gate 11 writes
+`<artifact_dir>/run-report.md`.) Run with cwd = the fixture dir so the transcript slug resolves.
