@@ -7,48 +7,58 @@
 ## Paste this into a fresh Claude Code session
 
 ```
-Read REFACTOR-PLAN.md (on branch refactor/shippable-plugin) — §0 CURRENT STATE and §5
-tell you where we are — and recall the project memories. We are POST Phase 2 (ii): Phase 1
-(all 9 pile-1 fixes) is done, and BOTH minimal dry runs ran green — parse_duration (first)
-and slugify (ii, confirming). This session's fixes are already committed: reviewer gates
-pinned to claude-opus-4-8; exception-message test-quality shifted left of the mutation gate;
-Gate 11 report persisted via analyzer --out; and the heredoc parser bug fixed in guard +
-analyzer. The plugin loads from the WORKSPACE (not the cache) — no rsync needed, just a
-session restart to pick up SKILL/agent edits. Do NOT revert to the old paced-tutorial
-workflow. Commit per logical unit; update §5 as you go.
+Read REFACTOR-PLAN.md (on branch refactor/shippable-plugin) — §0 CURRENT STATE and §5 tell
+you where we are — and recall the project memories. Phases 0–2(ii) are done. Phase 4 was
+started (not Phase 3): the async cached JSON fetcher feature (`CachedFetcher`) ran end-to-end
+through all gates in the container and landed a real commit (`7047829`) on
+`feature/00-async-cached-json-fetcher`. Three fixes are already committed on this branch: the
+Gate 0 STOP-summary restyle, a non-importable-package preflight/RED-classification fix, and a
+container UX provisioning commit, plus a corrected Gate 0 note about reviewer model pinning.
+Do NOT revert to the old paced-tutorial workflow. Commit per logical unit; update §5 as you go.
 
-Plan: do Phase 4 first, then Phase 3.
-- Phase 4 — the file-I/O + async-REST feature + fault-injection dry run. The container
-  fixture ~/test-implement-feature is already scaffolded for it (webcache pkg, httpx,
-  asyncio_mode=auto, workspace read-glob in .claude/settings.json). I (the user) drive the
-  interactive /implement-feature in a container terminal; you analyze the run-log +
-  transcripts and fix fallout on the branch. Two green dry runs = done.
-- Phase 3 — docs: README router + docs/user-guide.md + developer-guide.md + tutorial.md,
-  absorbing PATTERNS/TUTORIAL/LAUNCHING-SUBAGENTS/isolation-experiments per the §3 doc-fate map.
+ONE thing is open before Phase 4 can be called done:
 
-Confirm the environment is ready (Docker + container up; fixture present; host test venv),
-then tell me the exact steps to drive the Phase 4 dry run.
+1. ✅ DONE — model-pinning re-audit. Settled from raw transcripts across all four sessions:
+   the dated `claude-opus-4-8` reviewer pin **IS honored** in every post-pin session (incl. the
+   committed Phase 4 run, session `251d3474`). The earlier "not honored" claim misattributed a
+   Sep-10 pre-pin `parse_duration` session to Phase 4. `design/model-pinning-findings.md` is
+   closed; the Gate 0 SKILL.md note (`133025c`) was confirmed correct as written.
+2. **Run the fault-injection pass** (network timeouts, 5xx responses) against the async fetcher
+   feature — the second half of Phase 4's done-bar (the un-mocked VERIFY gate, the resiliency
+   review dimension, and the concurrency policy need to be genuinely exercised, not just
+   asserted). **Mechanism decided: `httpx.MockTransport`** (deterministic, no network / no extra
+   process, fits the pinned toolchain).
+
+Only after the fault-injection pass lands does Phase 4 count as done — then move to Phase 3
+(docs: README router + user-guide.md + developer-guide.md + tutorial.md, absorbing
+PATTERNS/TUTORIAL/LAUNCHING-SUBAGENTS per the §3 doc-fate map).
 ```
 
-## Environment for a Phase 4 dry run
+## Environment — container is already up and populated, no re-bootstrap needed
 
-The login lives in the named volume `expt-skill-workflow-claude`. The plugin loads
-**directly from the workspace** (directory-source marketplace) — the `~/.claude/plugins/cache`
-copy is **vestigial**, so there is **NO cache-sync step**. A workspace edit takes effect after
-a **session restart** (SKILL/agents load at startup; the `guard.py` hook reloads per tool call).
+The login lives in the named volume `expt-skill-workflow-claude`. The container
+(`vibrant_kapitsa` as of 2026-09-11) was left **running**, with the fixture already scaffolded
+and the Phase 4 run's artifacts intact — do **not** tear it down or re-bootstrap the fixture
+before checking what's there.
 
 1. `cd /Users/sdaas/dev/expt-skill-workflow-agent`
-2. `devcontainer up --workspace-folder .` — idempotent; rebuilds the image only if missing
-   (postCreate reinstalls the pinned toolchain).
-3. **Start a FRESH container Claude session** so this session's committed plugin fixes load:
-   `devcontainer exec --workspace-folder . bash` then inside: `cd ~/test-implement-feature && claude`
-4. **Fixture** (Phase 4 = `~/test-implement-feature`): already scaffolded for the async-REST
-   feature (`webcache` pkg, `httpx`, `asyncio_mode=auto`, `git init` on `master` so #8 forces a
-   feature branch, and `.claude/settings.json` carrying BOTH read-globs — the workspace one is
-   the load-bearing one in-container). If the container was rebuilt (`docker rm`) the fixture is
-   gone — ask and it will be regenerated (see `phase2-dryrun-mechanics` memory).
-   - For a maximally deterministic run, prefer destroying + rebuilding the container while
-     KEEPING the volume (the login) — this is issue #21 (a v1.1 script; do it by hand for now).
+2. Check the container is still up: `docker ps -a | grep expt` (or `devcontainer up
+   --workspace-folder .` — idempotent, only rebuilds if the container is actually gone).
+3. Shell in: `devcontainer exec --workspace-folder . bash` (or `docker exec -it <name> bash`),
+   then `cd ~/test-implement-feature`.
+4. `git log --oneline -3` should show `7047829 Add async cached JSON fetcher (CachedFetcher)...`
+   on `feature/00-async-cached-json-fetcher`. `git diff --stat` shows ~3 lines of uncommitted
+   local drift in `.claude/settings.json`/`.gitignore` from the run — harmless, review before
+   continuing.
+5. The plugin loads **directly from the workspace** (directory-source marketplace) — the
+   `~/.claude/plugins/cache` copy is **vestigial**, so there is **no cache-sync step**. A
+   workspace edit (e.g. from step 1 above) takes effect after a **fresh container Claude
+   session restart** (SKILL/agents load at startup; the `guard.py` hook reloads per tool call).
+6. The run's handoff + transcripts are still on disk:
+   `~/test-implement-feature/.implement-feature/00-async-cached-json-fetcher-202609110808/` and
+   `~/.claude/projects/-home-vscode-test-implement-feature/251d3474-c0c0-4d49-b39e-34af100f71ff*`
+   — use these for the model-pinning re-audit (step 1 of the resume prompt above) before
+   starting anything new.
 
 ## Analyzer over a run
 ```

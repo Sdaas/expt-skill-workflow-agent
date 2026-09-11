@@ -29,21 +29,56 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
 - **Phase 2 (ii): DONE 2026-09-11** — the confirming minimal `slugify` dry run ran green
   (P56+P57 confirmed live; 5/5 isolation after the heredoc fix). Five fixes + 2 backlog issues
   landed this session; see §5 Phase 2 (ii). **Host: 65 unit tests green.**
-- **NEXT (resume here): decide Phase 3 (docs) vs Phase 4 (big feature).** Options:
-  (i) **Phase 3** — write README router + UG + DG + Tutorial (absorb PATTERNS/TUTORIAL/etc. per §3
-  doc-fate map); (ii) **Phase 4** — the file-I/O + async-REST feature + fault-injection dry run
-  (fixture `~/test-implement-feature` is already scaffolded for it). Recommended: **Phase 4**
-  (two green dry runs = done), then Phase 3 docs describe the finished reality — or straight to
-  Phase 3 if docs are the priority.
+- **Phase 4: STARTED 2026-09-11, NOT YET COMPLETE.** Chose Phase 4 first (per the §0 recommendation).
+  Fixture `~/test-implement-feature` bootstrapped for it (`webcache` src-layout pkg, `httpx`,
+  `asyncio_mode=auto`). Ran `/implement-feature` end-to-end (gates 0→11) for the **async cached
+  JSON fetcher** feature (`CachedFetcher`), ending in a **real commit `7047829`** on
+  `feature/00-async-cached-json-fetcher` (never on `master`). Three fixes landed on the branch
+  during/after this run — see §5 Phase 4 for detail:
+  - Gate 0 STOP-summary restyle (concise, deviation-focused house convention). Commit `3df406f`.
+  - Non-importable project package caught before it fakes a TDD red (`pip install -e .` gap in the
+    fixture produced a false RED). Commit `3257786`.
+  - Stale Gate 0 note fixed (reviewers pin the explicit `claude-opus-4-8`, not the `opus` alias).
+    Commit `133025c`.
+  - **✅ RESOLVED FINDING** (`design/model-pinning-findings.md`, closed 2026-09-11): the dated
+    reviewer pin `claude-opus-4-8` **IS honored.** Re-audited all four sessions' raw subagent
+    transcripts (`message.model` per `agentType`). Root cause of the earlier confusion: the two
+    write-ups audited **different runs** in a reused project dir. The pin landed 2026-09-11
+    03:44 UTC (`e093182`); every **post-pin** session (incl. the committed Phase 4 run session
+    `251d3474`) ran reviewers on `claude-opus-4-8`, while the two Sep-10 **pre-pin**
+    `parse_duration` sessions correctly used the `opus` alias → `claude-opus-5`. No override env
+    var; not a fallback. The Gate 0 SKILL.md note (`133025c`) is **correct as written** — no
+    edit needed. Evidence table + the "tie session→run via feature/workdir/SHA before trusting
+    it" lesson are carried into the Phase 3 ADR.
+  - **Fault-injection pass (timeouts, 5xx) has NOT been run yet** — Phase 4's "done" bar is two
+    things: a green dry run (✅ done) AND the fault-injection pass against the un-mocked VERIFY
+    gate (❌ not started). Phase 4 is therefore **not complete**.
+  - The container fixture (`~/test-implement-feature`) has small **uncommitted** local tweaks
+    (`.claude/settings.json`, `.gitignore`, 3 lines total) from this run — check `git diff` there
+    before continuing; harmless either way since the fixture is ephemeral.
+  - Container `vibrant_kapitsa` (volume `expt-skill-workflow-claude`) was left **running** (not
+    torn down) with these artifacts intact — no need to re-bootstrap the fixture to resume.
 
-  **Dry-run mechanics to remember (see memory `phase2-dryrun-mechanics`):** the container runs the
-  plugin from a **hard-synced cache** at `~/.claude/plugins/cache/toy-local-marketplace/implement-feature/0.1.0/`
-  — after ANY edit to `implement-feature-plugin/`, `rsync` it into that cache (or do a real
-  `/plugin` reinstall) AND restart the container Claude session (SKILL/agents load at startup; the
-  guard hook reloads per-call). Fixture repo: container `~/test-implement-feature` (ephemeral).
-  Host test harness: recreate `/tmp/if-venv.tmp` (`python3 -m venv` + `pip install pytest`); full
-  toolchain (ruff/mypy/mutmut) only runs in-container. Still to confirm live: install-from-GitHub
-  mechanics, and whether the #5 read-allow rule actually silences the read-tax prompt.
+- **NEXT (resume here), in order:**
+  1. ✅ DONE — model-pinning re-audit complete: pin IS honored, `design/model-pinning-findings.md`
+     closed, SKILL.md note confirmed correct (no edit).
+  2. Run the **fault-injection pass** (network timeouts, 5xx) against the async fetcher feature to
+     actually finish Phase 4. **Mechanism decided: `httpx.MockTransport`** (deterministic, no
+     network/extra process, fits the pinned toolchain).
+  3. Then **Phase 3** (docs) — README router + UG + DG + Tutorial, absorbing PATTERNS/TUTORIAL/etc.
+     per §3 doc-fate map, describing the now-finished reality.
+
+  **Dry-run mechanics (confirmed, see memory `phase2-dryrun-mechanics`):** the container's
+  directory-source marketplace loads the plugin **from the workspace**
+  (`/workspaces/expt-skill-workflow-agent/implement-feature-plugin/**`), **not** the
+  `~/.claude/plugins/cache/...` copy (that copy is vestigial — 9/9 plugin-file reads in the (ii)
+  dry run came from the workspace, 0 from the cache). **No rsync/cache-sync step is needed** — a
+  workspace edit takes effect after a **session restart** (SKILL/agents load at startup; the
+  guard hook reloads per tool call). Fixture repo: container `~/test-implement-feature`
+  (ephemeral, currently populated — see above). Host test harness: recreate `/tmp/if-venv.tmp`
+  (`python3 -m venv` + `pip install pytest`); full toolchain (ruff/mypy/mutmut) only runs
+  in-container. Still to confirm live: install-from-GitHub mechanics (a real end-user install
+  would hit the cache path, not the workspace path — UG must document that distinction).
 - **Model note:** Phase 1 was deep interdependent surgery on `SKILL.md` + `guard.py` + `analyzer/` +
   templates — run on a high-capability model / high effort.
 - **Dry runs (Phases 2, 4):** the USER drives the interactive `/implement-feature` in a container
@@ -352,7 +387,29 @@ Update this section as work proceeds — it is the resume anchor.
 
 ### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
 
-### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — ⬜ NOT STARTED
+### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — 🔶 IN PROGRESS 2026-09-11
+- **Ran** `/implement-feature` for the async cached JSON fetcher (`CachedFetcher`) on
+  `~/test-implement-feature` (`webcache` src-layout pkg, `httpx`, `asyncio_mode=auto`), all gates
+  0→11, ending in a real commit `7047829` on `feature/00-async-cached-json-fetcher` (never on
+  `master`). 243 tool calls, isolation 5/5 per the analyzer report.
+- **Fixes landed:**
+  - Gate 0 STOP-summary output-style restyle (glyph-led, terse happy path, deviations expanded
+    once). Commit `3df406f`.
+  - Non-importable project package caught before faking a TDD red — Gate 0 preflight now verifies
+    `python -c "import <pkg>"`; Gate 3's RED exit-condition distinguishes a writer-correctable bad
+    import from an environment `ModuleNotFoundError` (hard-stop, not re-spawnable);
+    `test-writer.md` told not to report the latter as a valid red. Commit `3257786`.
+  - Container Claude UX provisioned (status line, smart-rm hook, settings) via a devcontainer
+    `postStartCommand` so a fresh volume self-heals. Commit `86325f3`.
+  - Stale Gate 0 note fixed: reviewers pin the explicit `claude-opus-4-8`, not the floating `opus`
+    alias (the restyle in `3df406f` had reintroduced the wrong claim). Commit `133025c`.
+  - **Finding recorded** (`design/model-pinning-findings.md`, commit `69ace10`): claimed the dated
+    `claude-opus-4-8` pin was not honored (ground truth said `claude-opus-5` actually ran) —
+    **this session's direct re-check of the same run's transcripts contradicts that claim** (see
+    §0 NEXT). **Unresolved — do not treat either document as settled.**
+- **NOT done yet:** the fault-injection pass (timeouts, 5xx against the un-mocked VERIFY gate) that
+  Phase 4's definition of done requires. Phase 4 is **not** a completed phase.
+- Unit tests: 65 green on host (unchanged this phase; all fixes were prose/SKILL-only).
 
 ### Phase 5 — Merge prep + merge to `main` — ⬜ NOT STARTED
 
