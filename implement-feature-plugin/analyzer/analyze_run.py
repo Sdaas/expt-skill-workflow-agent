@@ -102,6 +102,10 @@ def main(argv: list[str] | None = None) -> int:
                    help="project slug under projects-dir (default: derived from cwd)")
     p.add_argument("--no-transcript", action="store_true",
                    help="skip the best-effort transcript/token analysis")
+    p.add_argument("--out", default=None,
+                   help="also write the Markdown report to this path (parent dirs are "
+                        "created); the report is still printed to stdout. Gate 11 uses "
+                        "this to persist <artifact_dir>/run-report.md.")
     args = p.parse_args(argv)
 
     # Resolve the run-log: explicit --runlog wins, else derive from --workdir, else default.
@@ -116,8 +120,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     projects_root = Path(args.projects_dir) if args.projects_dir else None
-    print(build_report(args.runlog, projects_root, args.slug,
-                        use_transcript=not args.no_transcript))
+    text = build_report(args.runlog, projects_root, args.slug,
+                        use_transcript=not args.no_transcript)
+    print(text)
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text)
     return 0
 
 

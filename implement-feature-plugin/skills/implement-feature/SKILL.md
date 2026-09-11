@@ -506,9 +506,11 @@ correctly still looks active until the commit lands.)
 ## Gate 11 — REPORT  [C]  (auto, measure-only — P40)
 
 **Auto-run the analyzer** over the just-finished run and present the compliance report — no
-manual step. The artifact dir persists (gitignored), so this reads it directly:
-`PYTHONPATH="<plugin_root>" python3 -m analyzer.analyze_run --workdir <artifact_dir>`
-(full report incl. the transcript token pass this time). Present:
+manual step. The artifact dir persists (gitignored), so this reads it directly and **saves
+the report** next to the handoff dir via `--out`:
+`PYTHONPATH="<plugin_root>" python3 -m analyzer.analyze_run --workdir <artifact_dir> --out <artifact_dir>/run-report.md`
+(full report incl. the transcript token pass this time; it prints AND persists to
+`<artifact_dir>/run-report.md`). Present:
 - **Isolation compliance** — the guard's invariants held across all gates.
 - **Per-gate model split** — each isolated gate's pinned model + tokens (the evidence for
   "reviews ran on a higher model than implementation").

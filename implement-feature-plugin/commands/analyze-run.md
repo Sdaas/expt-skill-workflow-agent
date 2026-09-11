@@ -31,6 +31,8 @@ PYTHONPATH="<PLUGIN_ROOT>" python3 -m analyzer.analyze_run --workdir "<ARTIFACT_
 - The run-log is derived as `<ARTIFACT_DIR>/handoff/run-log.jsonl`.
 - Add `--no-transcript` for a fast isolation-only pass (skips token/cost; useful for the
   pre-approval breach check at Gate 9).
+- Add `--out PATH` to also save the Markdown report to a file (parent dirs are created); it
+  is still printed. Gate 11 uses this to persist `<ARTIFACT_DIR>/run-report.md`.
 - `--runlog PATH` overrides `--workdir`; `--projects-dir` / `--slug` point the transcript
   reader at a non-default Claude Code projects dir.
 

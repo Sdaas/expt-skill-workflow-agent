@@ -1,7 +1,7 @@
 """End-to-end tests for build_report: the transcript quarantine in action."""
 from __future__ import annotations
 
-from analyzer.analyze_run import build_report
+from analyzer.analyze_run import build_report, main
 
 from .conftest import assistant_turn, call, write_runlog, write_subagent, write_transcript
 
@@ -71,3 +71,22 @@ def test_no_transcript_flag_skips_cleanly(tmp_path):
     out = build_report(_runlog(tmp_path), None, None, use_transcript=False)
     assert "Run-log analysis" in out
     assert "--no-transcript" in out
+
+
+def test_out_flag_saves_report_and_still_prints(tmp_path, capsys):
+    runlog = _runlog(tmp_path)
+    out_path = tmp_path / "run-report.md"
+    rc = main(["--runlog", runlog, "--no-transcript", "--out", str(out_path)])
+    assert rc == 0
+    printed = capsys.readouterr().out
+    assert "Run-log analysis" in printed          # still printed to stdout
+    assert out_path.is_file()                      # and persisted to --out
+    assert out_path.read_text().strip() == printed.strip()
+
+
+def test_out_flag_creates_missing_parent_dirs(tmp_path):
+    runlog = _runlog(tmp_path)
+    out_path = tmp_path / "nested" / "dir" / "run-report.md"
+    assert main(["--runlog", runlog, "--no-transcript", "--out", str(out_path)]) == 0
+    assert out_path.is_file()
+    assert "Run-log analysis" in out_path.read_text()
