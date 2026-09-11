@@ -35,7 +35,12 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
   verification pass (`httpx.MockTransport`: timeouts + 502/503/504 + concurrency-under-fault) ran
   green against the real feature — **no bug**, but it surfaced a resiliency-review methodology gap
   (transport-level faults never enumerated) recorded in `design/fault-injection-findings.md`. See
-  §5 Phase 4 for detail. **NEXT: Phase 3 (docs).**
+  §5 Phase 4 for detail.
+- **Phase 3: ✅ DONE 2026-09-11.** Docs restructured into the 3-audience shape in **6 logical
+  commits**: root `README.md` router + `docs/{user-guide,developer-guide,tutorial}.md`, the
+  transport-fault plugin nudge (carry-in task), and the doc-fate deletes (PATTERNS / TUTORIAL /
+  LAUNCHING-SUBAGENTS / PLAN / REVIEW-READING-ORDER / the whole `design/` dir), with dangling refs
+  in SKILL.md / analyzer fixed. See §5 Phase 3. **NEXT: Phase 5 (merge prep).**
 - **Phase 4 (historical): STARTED 2026-09-11.** Chose Phase 4 first (per the §0 recommendation).
   Fixture `~/test-implement-feature` bootstrapped for it (`webcache` src-layout pkg, `httpx`,
   `asyncio_mode=auto`). Ran `/implement-feature` end-to-end (gates 0→11) for the **async cached
@@ -72,10 +77,12 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
   2. ✅ DONE — fault-injection pass (`httpx.MockTransport`) ran green against the real
      `CachedFetcher` (timeouts + broad 5xx + concurrency-under-fault; no bug). Gap recorded in
      `design/fault-injection-findings.md`. **Phase 4 is now complete.**
-  3. **Phase 3 (NEXT)** — docs: README router + UG + DG + Tutorial, absorbing PATTERNS/TUTORIAL/etc.
-     per §3 doc-fate map, describing the now-finished reality. The two design findings
-     (`model-pinning-findings.md`, `fault-injection-findings.md`) feed the DG's ADRs + testing
-     methodology + design-principles sections.
+  3. ✅ DONE — Phase 3 docs: README router + UG + DG + Tutorial + the transport-fault nudge +
+     doc-fate deletes. The two design findings were absorbed into the DG (ADR-2 model-pinning,
+     §8 fault-injection) and their files deleted.
+  4. **Phase 5 (NEXT)** — merge prep: final `README.md`/`CLAUDE.md` pass, delete `REFACTOR-PLAN.md`
+     + `RESUME.md`, close addressed issues with commit refs, consider the `toy-local-marketplace`
+     rename, merge `refactor/shippable-plugin` → `main`.
 
   **Dry-run mechanics (confirmed, see memory `phase2-dryrun-mechanics`):** the container's
   directory-source marketplace loads the plugin **from the workspace**
@@ -394,14 +401,35 @@ Update this section as work proceeds — it is the resume anchor.
   v1.1/backlog, overlaps #18).
 - Unit tests: **65 green on host** (was 58 + 5 heredoc + 2 `--out`).
 
-### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED (NEXT)
-- **Carry-in task (decided 2026-09-11):** apply the fault-injection nudge during the DG rewrite —
-  the resiliency review + `test-plan-template.md` must require at least one **transport-level**
-  fault test (timeout/connect failure) for any network-boundary feature, distinct from
-  response-level 5xx/body faults. Touch-points: `quality-standards.md`, `test-plan-template.md`,
-  `agents/test-writer.md`, `agents/code-reviewer.md`. See `design/fault-injection-findings.md` §4.
-- Both design findings (`model-pinning-findings.md`, `fault-injection-findings.md`) feed the DG's
-  ADRs + testing-methodology + design-principles sections.
+### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ✅ DONE 2026-09-11
+Six logical commits on `refactor/shippable-plugin`:
+- [x] **README router** — root `README.md` rewritten from paced-tutorial blurb → 3-audience router
+  (User→UG, Developer→DG, Learner→Tutorial); `docs/` scaffolded.
+- [x] **`docs/user-guide.md` (#6)** — install-from-GitHub via marketplace, one-time Python +
+  toolchain setup, the plugin-dir `permissions.allow` read rule (P53), `pip install -e .` for
+  src-layout, gate-by-gate run walkthrough, troubleshooting, FAQ. Honestly reframes the
+  container-centric preflight text for a real user (toolchain-on-PATH, not "rebuild the container").
+- [x] **`docs/developer-guide.md` (#7)** — declarative architecture, conductor + isolated gates,
+  two-trees, handoff contract, 12-gate table, model/effort pinning, the guard hook, the analyzer,
+  **10 ADRs**, distilled design principles, container testing/dry-run methodology (+ fault-injection).
+  Absorbs `PATTERNS.md`, `design/isolation-experiments.md`, and both design findings.
+- [x] **`docs/tutorial.md`** — concepts (plugin/command/skill/subagent), workflow+gates, packaging,
+  the `toy-greet` runnable walkthrough, conductor+isolated gates, the reusable subagent-isolation
+  playbook. Absorbs `TUTORIAL.md` + `LAUNCHING-SUBAGENTS.md`.
+- [x] **Transport-fault nudge (carry-in task, decided 2026-09-11)** — applied to
+  `quality-standards.md` (new "Boundary resilience" policy), `test-plan-template.md` (inventory
+  guidance + a transport-fault row), `agents/test-writer.md`, `agents/code-reviewer.md` (flag
+  absence as `→TESTS`). Any network-boundary feature now requires ≥1 transport-level fault test
+  (timeout/connect failure raised before a response; propagates + not cached), distinct from
+  response-level 5xx/body faults.
+- [x] **Cleanup / deletes** — removed the absorbed + stale files per the §3 doc-fate map:
+  `PATTERNS.md`, `TUTORIAL.md`, `LAUNCHING-SUBAGENTS.md`, `PLAN.md`, `REVIEW-READING-ORDER.md`, and
+  the entire `design/` dir (isolation-experiments + both findings, now in the DG). Fixed the
+  dangling refs left behind: `SKILL.md`, `analyzer/README.md`, `analyzer/__init__.py` now point at
+  the DG instead of `PATTERNS.md`/`isolation-experiments.md`. Resolves #3 implicitly.
+- **Deferred to Phase 5:** the marketplace is still named `toy-local-marketplace` (a tutorial
+  leftover) — documented as-is in the UG with a note; renaming it (+ its tutorial/DEVCONTAINER
+  references) is a candidate final-polish item for merge prep.
 
 ### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — ✅ DONE 2026-09-11
 - **Ran** `/implement-feature` for the async cached JSON fetcher (`CachedFetcher`) on

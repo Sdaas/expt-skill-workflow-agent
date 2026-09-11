@@ -1,7 +1,8 @@
 # Observability analyzer
 
 A **deterministic, after-the-fact** reporter for an `/implement-feature` run —
-**measurement, never orchestration** (PATTERNS.md **P40**). It reads the two
+**measurement, never orchestration** (see the Developer Guide → ADR-5 /
+"measurement, not orchestration"). It reads the two
 pieces of evidence a finished run leaves behind and prints a Markdown report. It
 never calls a model, makes a decision, or drives a gate.
 
