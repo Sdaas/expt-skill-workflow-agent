@@ -9,8 +9,11 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Resuming a session (read this first)
 1. `git checkout refactor/shippable-plugin` — all refactor work lives on this branch.
-2. Read **`REFACTOR-PLAN.md`** — the live source of truth: goal, issue triage, phases, done-gate.
-3. `RESUME.md` and `PLAN.md` are **being deleted** by this refactor; do not treat them as current.
+2. Read **`REFACTOR-PLAN.md`** — the live source of truth: goal, issue triage, phases, done-gate
+   (§0 CURRENT STATE + §5 progress log tell you exactly where we are).
+3. **`RESUME.md`** holds the paste-ready resume prompt + environment steps — current and
+   maintained (it and `REFACTOR-PLAN.md` are transient, deleted only at merge in Phase 5).
+4. `PLAN.md` is **stale / being deleted** by this refactor; do not treat it as current.
 
 ## What this repo is (target end-state)
 A **one repo** that ships a genuinely-usable `implement-feature` plugin, with a top-level `README.md`

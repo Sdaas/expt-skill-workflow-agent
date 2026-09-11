@@ -2,55 +2,66 @@
 
 > Transient resume aid (like `REFACTOR-PLAN.md`; both are deleted at merge — Phase 5).
 > The authoritative state is **`REFACTOR-PLAN.md` §0 + §5**. This file just holds a
-> paste-ready prompt and the environment-rebuild steps.
+> paste-ready prompt and the environment steps.
 
 ## Paste this into a fresh Claude Code session
 
 ```
 Read REFACTOR-PLAN.md (on branch refactor/shippable-plugin) — §0 CURRENT STATE and §5
-tell you where we are — and recall the project memories. We are POST Phase 2 first dry
-run: Phase 1 (all 9 pile-1 fixes) is done, and the parse_duration dry run ran green
-end-to-end with all invariants holding; five triage items already landed (two guard
-false-positives, P56 conductor-model self-check, gitignore the if-runlog fallback, P57
-smallest-viable scope anchor). Do NOT revert to the old paced-tutorial workflow. Commit
-per logical unit; update §5 as you go.
+tell you where we are — and recall the project memories. We are POST Phase 2 (ii): Phase 1
+(all 9 pile-1 fixes) is done, and BOTH minimal dry runs ran green — parse_duration (first)
+and slugify (ii, confirming). This session's fixes are already committed: reviewer gates
+pinned to claude-opus-4-8; exception-message test-quality shifted left of the mutation gate;
+Gate 11 report persisted via analyzer --out; and the heredoc parser bug fixed in guard +
+analyzer. The plugin loads from the WORKSPACE (not the cache) — no rsync needed, just a
+session restart to pick up SKILL/agent edits. Do NOT revert to the old paced-tutorial
+workflow. Commit per logical unit; update §5 as you go.
 
-Pick the next step and tell me your recommendation first:
-(i)  Phase 3 — docs: README router + docs/user-guide.md + developer-guide.md + tutorial.md,
-     absorbing PATTERNS/TUTORIAL/LAUNCHING-SUBAGENTS/isolation-experiments per the §3 doc-fate map;
-(ii) a quick SECOND minimal dry run to confirm P57 (scope anchor) + P56 (model self-check)
-     actually change conductor behavior before the big feature;
-(iii) Phase 4 — the file-I/O + async-REST feature + fault-injection dry run.
+Plan: do Phase 4 first, then Phase 3.
+- Phase 4 — the file-I/O + async-REST feature + fault-injection dry run. The container
+  fixture ~/test-implement-feature is already scaffolded for it (webcache pkg, httpx,
+  asyncio_mode=auto, workspace read-glob in .claude/settings.json). I (the user) drive the
+  interactive /implement-feature in a container terminal; you analyze the run-log +
+  transcripts and fix fallout on the branch. Two green dry runs = done.
+- Phase 3 — docs: README router + docs/user-guide.md + developer-guide.md + tutorial.md,
+  absorbing PATTERNS/TUTORIAL/LAUNCHING-SUBAGENTS/isolation-experiments per the §3 doc-fate map.
+
+Confirm the environment is ready (Docker + container up; fixture present; host test venv),
+then tell me the exact steps to drive the Phase 4 dry run.
 ```
 
-## Rebuilding the container (you deleted the container AND the image; the volume was kept)
+## Environment for a Phase 4 dry run
 
-The login + the plugin cache with the Phase-1 code live in the named volume
-`expt-skill-workflow-claude`, which you did **not** delete — so they persist. Only the
-container/image and the fixture repo are gone.
+The login lives in the named volume `expt-skill-workflow-claude`. The plugin loads
+**directly from the workspace** (directory-source marketplace) — the `~/.claude/plugins/cache`
+copy is **vestigial**, so there is **NO cache-sync step**. A workspace edit takes effect after
+a **session restart** (SKILL/agents load at startup; the `guard.py` hook reloads per tool call).
 
 1. `cd /Users/sdaas/dev/expt-skill-workflow-agent`
-2. `devcontainer up --workspace-folder .` — **rebuilds the image** this time (slower;
-   postCreate reinstalls the pinned toolchain), then starts the container.
-3. `devcontainer exec --workspace-folder . claude` — login should persist via the volume.
-4. **Re-sync the plugin cache to the branch** (the container runs a hard-synced cache, and
-   after any plugin edit it must be refreshed — see the `phase2-dryrun-mechanics` memory):
-   ```
-   devcontainer exec --workspace-folder . bash -lc '
-     C=/home/vscode/.claude/plugins/cache/toy-local-marketplace/implement-feature/0.1.0
-     rsync -a --delete --exclude __pycache__ --exclude ".*_cache" \
-       /workspaces/expt-skill-workflow-agent/implement-feature-plugin/ "$C"/'
-   ```
-   (Restart any running `claude` session afterward — SKILL/agents load at startup; the
-   guard hook reloads per tool call.)
-5. **Recreate the dry-run fixture** (it lived in the container home, not the volume, so it's
-   gone). Rebuild `~/test-implement-feature`: a `pyproject.toml` (src-layout), empty
-   `src/durations/` + `tests/`, a `.claude/settings.json` with the plugin read-allow rule,
-   and `git init` (its default branch triggers #8's feature-branch requirement). The scaffold
-   is described in the `phase2-dryrun-mechanics` memory; ask me and I'll regenerate it.
+2. `devcontainer up --workspace-folder .` — idempotent; rebuilds the image only if missing
+   (postCreate reinstalls the pinned toolchain).
+3. **Start a FRESH container Claude session** so this session's committed plugin fixes load:
+   `devcontainer exec --workspace-folder . bash` then inside: `cd ~/test-implement-feature && claude`
+4. **Fixture** (Phase 4 = `~/test-implement-feature`): already scaffolded for the async-REST
+   feature (`webcache` pkg, `httpx`, `asyncio_mode=auto`, `git init` on `master` so #8 forces a
+   feature branch, and `.claude/settings.json` carrying BOTH read-globs — the workspace one is
+   the load-bearing one in-container). If the container was rebuilt (`docker rm`) the fixture is
+   gone — ask and it will be regenerated (see `phase2-dryrun-mechanics` memory).
+   - For a maximally deterministic run, prefer destroying + rebuilding the container while
+     KEEPING the volume (the login) — this is issue #21 (a v1.1 script; do it by hand for now).
+
+## Analyzer over a run
+```
+devcontainer exec --workspace-folder . bash -lc '
+  cd ~/test-implement-feature
+  PYTHONPATH=/workspaces/expt-skill-workflow-agent/implement-feature-plugin \
+    python3 -m analyzer.analyze_run --workdir ~/test-implement-feature/.implement-feature/<run>/'
+```
+(`--no-transcript` = fast isolation-only pass; `--out PATH` also saves the report — Gate 11
+writes `<artifact_dir>/run-report.md`.) Run with cwd = the fixture dir so the transcript slug resolves.
 
 ## Host unit-test harness
 `/tmp` is volatile — recreate:
 `python3 -m venv /tmp/if-venv.tmp && /tmp/if-venv.tmp/bin/pip install pytest`, then
-`/tmp/if-venv.tmp/bin/python -m pytest implement-feature-plugin -q` (expect 58 passing).
+`/tmp/if-venv.tmp/bin/python -m pytest implement-feature-plugin -q` (expect **65** passing).
 Full toolchain (ruff/mypy/mutmut) only runs in-container.
