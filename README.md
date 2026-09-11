@@ -1,36 +1,74 @@
-# expt-skill-workflow-agent
+# implement-feature
 
-A **hands-on tutorial project** for learning how to build a Claude Code **plugin** that drives a
-full human-in-the-loop workflow using **skills + subagents + workflow patterns** (no orchestration
-code). We build up to an `/implement-feature` command: interview → interface/behavioral spec (with
-approval) → test-first implementation → deep review + mutation testing → final review → commit.
+A **Claude Code plugin** that turns a one-line feature request into a reviewed, tested, committed
+Python change — through an interview-driven, test-first, human-in-the-loop workflow.
 
-This is a **learning exercise, not production code.**
+`/implement-feature` runs as a **conductor** (the interactive session that holds the through-line and
+talks to you) walking a fixed sequence of **gates**. The bias-sensitive gates — write tests, review
+tests, implement, verify, review code — run as **isolated subagents**: fresh context, a model pinned
+per role, and a curated file-only inbox. A guard hook enforces the isolation; a deterministic analyzer
+proves after the fact what actually happened. There is **no hand-written orchestration code** — the
+whole workflow is expressed in Markdown, and the agent is the runtime.
 
-## How the tutorial runs
-Chunked (~200–250 words each) + build steps. One chunk at a time; advance only on "next."
-To continue in a new session: open `RESUME.md` and say **"read RESUME.md and continue."**
+What that buys you:
 
-## Repo map
-| Path | What it is |
-|---|---|
-| `PLAN.md` | The full 18-chunk tutorial plan + change-of-direction log. |
-| `RESUME.md` | Live progress tracker + resume pointer. **Start here in a new session.** |
-| `TUTORIAL.md` | Accumulating reference of concepts + captured Q&A. |
-| `PATTERNS.md` | Running checklist: design patterns, anti-patterns, traps. |
-| `DEVCONTAINER.md` | Dev container lifecycle (CLI) + VS Code ⇧⌘P command reference. |
-| `.devcontainer/` | The dev container definition (Option A: repo root = workspace). |
-| `toy-greet-plugin/` | The **toy plugin** — a `/greet` 2-gate workflow (Part B, learning scaffold). |
-| `test-toy-greet-plugin/` | In-container **scratch project** where we install + run `/greet`. |
-
-## Testing model
-We never install the plugin into the Mac's global `~/.claude`. Instead we run Claude Code inside a
-**dev container** with its own isolated `~/.claude`, managed via the `devcontainer` CLI / VS Code.
-See `DEVCONTAINER.md`. This same sandbox is reused for the real product (which commits code).
-
-## Status
-Foundations (Part A) complete; toy plugin scaffolded; dev-container sandbox built. Next: install and
-run the toy inside the container (Chunk 8). See `RESUME.md` for the exact current position.
+- **Test-first, for real.** Tests are written by an *algorithm-blind* subagent (it sees the public
+  contract, never the internal design), reviewed by an independent critic *before* any code exists,
+  and the implementer is *barred from editing them*.
+- **Reviews stronger than the code.** Design and every review gate run on a higher model than
+  implementation — an invariant the plugin pins and the analyzer verifies.
+- **Not "done" on green tests.** A separate verifier drives the *real* feature against every
+  acceptance criterion and exercises every external boundary un-mocked.
+- **You own the ship decision.** Nothing is committed until you review the real artifacts and approve.
 
 ---
-Authorship: Soumendra Daas &lt;soumendra.daas@gmail.com&gt;
+
+## Pick your path
+
+| You are… | Go to | What you'll find |
+|---|---|---|
+| **A user** — you want to run `/implement-feature` on your own Python repo | **[User Guide](docs/user-guide.md)** | Install from GitHub, one-time Python + toolchain setup, how to run a feature end-to-end, and an FAQ. |
+| **A developer** — you want to understand, extend, or improve the plugin | **[Developer Guide](docs/developer-guide.md)** | Architecture (conductor + isolated gates), the guard hook, the analyzer, the design decisions (ADRs), and the container testing methodology. |
+| **A learner** — you want to understand *how* a plugin like this is built | **[Tutorial](docs/tutorial.md)** | The concepts (plugin vs command vs skill vs subagent), subagent isolation, and a runnable `toy-greet` example to build intuition before reading the real product. |
+
+---
+
+## What's in this repo
+
+```
+README.md                      # this router
+docs/
+  user-guide.md                # run it on your own repo
+  developer-guide.md           # understand / extend it
+  tutorial.md                  # learn the underlying concepts
+DEVCONTAINER.md                # the dev-container test harness (referenced by the Developer Guide)
+implement-feature-plugin/      # ← the product
+toy-greet-plugin/              # a minimal 2-gate example plugin (used by the Tutorial)
+.claude-plugin/marketplace.json  # publishes both plugins
+.devcontainer/                 # the dev container definition
+```
+
+Two plugins are published through `.claude-plugin/marketplace.json`:
+
+- **`implement-feature`** — the product this repo exists to ship.
+- **`toy-greet`** — a two-file, two-gate `/greet` workflow kept as the Tutorial's runnable example.
+
+---
+
+## Requirements at a glance
+
+- **Claude Code** (the CLI, desktop, or IDE extension).
+- **Python 3.12+** on the target repo.
+- The pinned dev toolchain (`ruff`, `mypy`, `pytest`, `pytest-cov`, `mutmut`, `hypothesis`,
+  `pytest-asyncio`) installed into the target repo's environment — the [User Guide](docs/user-guide.md)
+  walks through this. Gate 0 hard-fails if any tool is missing, so nothing runs on a broken environment.
+
+## Status
+
+`implement-feature` is **v1**: it has been run end-to-end against real Python features (a duration
+parser, a slugifier, and an async cached JSON fetcher), including a fault-injection pass, inside the
+dev container. See the [Developer Guide](docs/developer-guide.md) for the testing methodology and the
+recorded design decisions.
+
+---
+Built by Soumendra Daas. Licensed MIT (see `implement-feature-plugin/.claude-plugin/plugin.json`).
