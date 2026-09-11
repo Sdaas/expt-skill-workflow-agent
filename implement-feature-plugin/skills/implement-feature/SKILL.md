@@ -201,21 +201,25 @@ Gate 0 below is the first application of this style; later STOP gates follow the
 
    | Gate | Runs as | Model / effort | Why |
    |---|---|---|---|
-   | INTERVIEW | [C] | Opus, medium | requirements reasoning = strong model |
-   | DESIGN / SPEC | [C] | Opus, medium | design = strong model |
-   | WRITE-TESTS | [I] `test-writer` | Sonnet, medium | writing tests = implementation |
-   | TEST-REVIEW | [I] `test-reviewer` | Opus, medium | review > implementation |
-   | IMPLEMENT | [I] `implementer` | Sonnet, medium | implementation |
-   | VERIFY | [I] `verifier` | Sonnet, medium | verification |
-   | CODE-REVIEW | [I] `code-reviewer` | Opus, medium | review > implementation |
-   | REVIEW-GUIDE / COMMIT | [C] | Sonnet or Haiku | mechanical presentation + commit |
+   | INTERVIEW | [C] | Opus (session), medium | requirements reasoning = strong model |
+   | DESIGN / SPEC | [C] | Opus (session), medium | design = strong model |
+   | WRITE-TESTS | [I] `test-writer` | `sonnet` alias, medium | writing tests = implementation |
+   | TEST-REVIEW | [I] `test-reviewer` | **`claude-opus-4-8`** (pinned) | review > implementation |
+   | IMPLEMENT | [I] `implementer` | `sonnet` alias, medium | implementation |
+   | VERIFY | [I] `verifier` | `sonnet` alias, medium | verification |
+   | CODE-REVIEW | [I] `code-reviewer` | **`claude-opus-4-8`** (pinned) | review > implementation |
+   | REVIEW-GUIDE / COMMIT | [C] | Sonnet or Haiku (session) | mechanical presentation + commit |
 
-   Subagent models are pinned in `agents/*.md` as the **aliases** `opus` / `sonnet`, which
-   resolve to the latest tier available in the environment (e.g. Opus 5 / Sonnet 5) — do
-   not hardcode a dated ID; **those 5 `[I]` rows can never deviate.** **Conductor `[C]` gates
-   run on the session's own model** (the plugin cannot pin it), so only the three `[C]` rows
-   can be wrong — and only when the session's tier is *below* that row's required tier
-   (INTERVIEW/DESIGN want Opus; REVIEW-GUIDE/COMMIT is *correct* on Sonnet/Haiku).
+   The `[I]` subagent models are pinned in `agents/*.md` and **never deviate**, but in two
+   different ways: the two **reviewers** (`test-reviewer`, `code-reviewer`) pin the **explicit,
+   dated** `claude-opus-4-8` — on purpose, for **reproducible review behavior** (a floating
+   alias would silently change the reviewer as new Opus tiers ship); `test-writer` /
+   `implementer` / `verifier` pin the **`sonnet` alias** (whatever the latest Sonnet tier is).
+   So the reviewers are `claude-opus-4-8` regardless of what this environment resolves `opus`
+   to. **Conductor `[C]` gates run on the session's own model** (the plugin cannot pin it), so
+   only the three `[C]` rows can be wrong — and only when the session's tier is *below* that
+   row's required tier (INTERVIEW/DESIGN want Opus; REVIEW-GUIDE/COMMIT is *correct* on
+   Sonnet/Haiku).
 
 6. **Conductor model self-check (P56) — the single deviation notice.** A plugin cannot set
    the conductor's own model. **Detect the model you are running as** and compare it to the
@@ -262,10 +266,11 @@ Gate 0 below is the first application of this style; later STOP gates follow the
    >   or proceed as-is.`
    > - **Branch:** `<working-branch>` `<(new — <reason>) only if forced/atypical>`
    > - `<model-plan line>` — **when the conductor is Opus-tier (clean):** ✅ `Model plan:
-   >   design & reviews on Opus, impl/verify on Sonnet (subagents pinned).` **when the
-   >   conductor is below Opus-tier:** print the full table instead, showing the *actual*
-   >   conductor model on the three `[C]` rows and a `⚠️` marker on the INTERVIEW & DESIGN
-   >   rows only (no second remedy — it's on the conductor line).
+   >   reviews on claude-opus-4-8 (pinned) · impl/tests/verify on Sonnet · design/interview on
+   >   this Opus session.` **when the conductor is below Opus-tier:** print the full table
+   >   instead, showing the *actual* conductor model on the three `[C]` rows and a `⚠️` marker
+   >   on the INTERVIEW & DESIGN rows only (no second remedy — it's on the conductor line). The
+   >   two reviewer rows always read `claude-opus-4-8` (pinned), never the `opus` alias.
    >
    > **STOP — confirm layout, model plan, and branch before I begin.**
 
