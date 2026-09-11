@@ -30,7 +30,10 @@ the implementation, stop — write the test against the contract instead.
    each acceptance criterion, the boundary inventory, and enough negative/edge cases to
    make a wrong implementation fail (mutation-minded). When a required error carries
    diagnostic content (e.g. the offending type/value in the message), assert the message
-   with `pytest.raises(T, match=…)` — not just the exception type.
+   with `pytest.raises(T, match=…)` — not just the exception type. For a **network**
+   boundary, include the plan's transport-level fault test (a timeout / connection failure
+   raised *before* a response) asserting it propagates and is **not cached** — distinct from
+   response-level (status / body) faults.
 2. Write `<artifact_dir>/handoff/05-test-intent.md` — one line per test: which AC / edge it
    pins and why.
 3. Run `python3 -m pytest -q` and confirm the suite is **RED** for the right reason

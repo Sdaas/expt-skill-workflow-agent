@@ -64,6 +64,19 @@ drifts (P46). So:
 - If the feature is not concurrent, state that once ("no concurrency surface") and skip
   — same shape as a VERIFY skip.
 
+## Boundary resilience (situational — driven by the boundary inventory)
+- If the boundary inventory includes a **network** boundary, the Gate 2 **test plan MUST** include at
+  least one **transport-level fault** test — a **timeout / connection failure raised *before* a
+  response exists** (e.g. `httpx.ReadTimeout` / `ConnectTimeout`) — asserting the fault **propagates**
+  (as the expected exception type) and is **not cached**. This is **distinct from response-level
+  faults** (non-2xx status, malformed body): a transport fault is a different code path (it never
+  reaches `raise_for_status()`), and it is a real runtime path for *any* network call — even when a
+  *configurable* timeout is (correctly) out of scope. Do not conflate "no configurable timeout" (a
+  scope decision) with "no need to test timeout behavior" (a coverage gap).
+- CODE-REVIEW's **reliability & resilience** dimension MUST confirm this transport-fault behavior for
+  every network boundary, alongside response-level error handling.
+- If there is no network boundary, this is skipped like any other situational check.
+
 ## Best-practices the reviews enforce
 Modularity/cohesion · purity / minimal side-effects · clear naming · full type
 annotations · docstrings on public surface · honor the constraints in `requirements.md`.

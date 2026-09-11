@@ -32,7 +32,10 @@ silently drop it.
      surviving mutants as weak tests.
 4. **Security** — injection/quoting, secrets, filesystem, dependency surface.
 5. **Reliability & resilience** — timeout/retry/backoff/idempotency at each boundary in the
-   inventory; concurrency (races, deadlocks, ordering, cancellation) if applicable.
+   inventory; concurrency (races, deadlocks, ordering, cancellation) if applicable. For a
+   **network** boundary, confirm the tests cover a **transport-level fault** (a timeout /
+   connection failure raised *before* a response) — that it propagates and is **not cached**,
+   distinct from response-level (status / body) faults; flag its absence as a `→TESTS` finding.
 6. **Observability & logging** — the change is diagnosable per the logging policy.
 
 Plus: **whole-diff consistency** (no dead/speculative code) and **test-integrity** (flag any
