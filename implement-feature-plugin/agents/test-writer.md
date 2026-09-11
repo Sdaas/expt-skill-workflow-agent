@@ -34,8 +34,13 @@ the implementation, stop — write the test against the contract instead.
 2. Write `<artifact_dir>/handoff/05-test-intent.md` — one line per test: which AC / edge it
    pins and why.
 3. Run `python3 -m pytest -q` and confirm the suite is **RED** for the right reason
-   (implementation absent), not from import/syntax errors.
+   (implementation absent — e.g. `ImportError: cannot import name '<symbol>'`,
+   `AttributeError`, or an assertion), **not** from import/syntax errors in the tests.
+   **One red does NOT count as success:** `ModuleNotFoundError: No module named '<the
+   project package>'` means the package isn't installed — an environment gap you cannot fix
+   by editing tests. Do **not** report it as a valid red; surface it as a **blocked** result
+   so the conductor stops (it needs `pip install -e .`).
 
 ## Return
 A short report: files written, count of tests, which ACs/edges are covered, and the
-red confirmation.
+red confirmation — or a **blocked** flag if the package was not importable.

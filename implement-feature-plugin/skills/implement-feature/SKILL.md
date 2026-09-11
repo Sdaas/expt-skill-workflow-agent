@@ -171,6 +171,19 @@ Gate 0 below is the first application of this style; later STOP gates follow the
 3. **Detect the code layout, human confirms.** Inspect `pyproject.toml` / `setup.cfg`,
    the package dir, and `tests/` to propose `<code_root>` and `<tests_root>`. Present them;
    the human confirms or corrects. Record both in the run-log.
+
+   Then **verify the project package is importable (hard-fail).** Determine the top-level
+   import package (the dir with `__init__.py` under `<code_root>`, or the `[project].name` /
+   `tool.setuptools.packages` mapping) and run `python -c "import <pkg>"`. **If it raises
+   `ModuleNotFoundError`, STOP** — a **src-layout** package that was never installed isn't on
+   `sys.path`, so the suite would go *falsely* red at Gate 3 and could **never** reach green
+   no matter what the implementer writes (a broken harness, not a TDD red). Render the 🔴
+   terminal template and do not proceed:
+   > 🔴 **`<pkg>` is not importable** — a src-layout package that isn't installed. Run
+   > `pip install -e .` in the repo root, then re-run `/implement-feature`. Stopping.
+
+   **Do not install it yourself** — the human owns their environment (the "no workarounds"
+   bar; installing your own package editable is *their* one-time setup, not the plugin's).
 4. **Create the run's artifact dir + lock.** Derive a run id `<NN-slug-YYYYMMDDHHMM>`:
    `NN` = GitHub issue # (`00` if none), `slug` = a short kebab slug from the feature,
    timestamp = now. Then, **in this order**:
@@ -368,9 +381,19 @@ brief you pass must contain ONLY:
   `<artifact_dir>/handoff/05-test-intent.md`, and confirm the suite is red.
 
 **Exit condition (machine, not human):** the returned report must show the suite is
-**RED for the right reason** — tests exist and fail because the implementation is
-*absent*, not from import/collection/syntax errors. If it's red for the wrong reason,
-re-spawn with the correction. When genuinely red, append the run-log entry and proceed.
+**RED for the right reason** — tests exist and fail because the implementation is *absent*
+(a genuine red looks like `ImportError: cannot import name '<symbol>'`, `AttributeError`,
+or a plain assertion failure — the package imports, the *symbol* is missing). **Not** every
+red counts; two wrong-reason cases are distinct:
+- a bad import path / typo / syntax error **inside the tests** → the writer's fault →
+  **re-spawn** the writer with the correction;
+- **`ModuleNotFoundError: No module named '<project-pkg>'`** → an **environment/setup
+  failure, not writer-correctable.** The project package isn't installed, so the suite stays
+  red no matter what the implementer writes — re-spawning the writer cannot fix it. **STOP,
+  do not proceed:** this means the Gate 0 importability preflight was skipped or the env
+  changed mid-run; have the human `pip install -e .` and re-enter the gate.
+
+When genuinely red, append the run-log entry and proceed.
 
 *(This gate is re-entered from Gate 4 on CHANGES-REQUESTED — re-spawn the writer with the
 findings file added to its inbox.)*
