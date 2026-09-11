@@ -24,7 +24,9 @@ Handoff files live under `<artifact_dir>/handoff/`.
 - **Non-tautology** — would a *wrong* implementation still pass? Do a mutation-minded
   analysis **by reasoning**: name plausible bugs (off-by-one, wrong operator, dropped
   branch, boundary mishandling) and confirm a test kills each. This is analytical, not
-  empirical — see the constraints below.
+  empirical — see the constraints below. A bare `pytest.raises(T)` with no `match=` is a
+  weak test when the contract specifies message content — flag it (a mutated message would
+  survive).
 - **Coverage** — every acceptance criterion and every boundary in the inventory has a
   test; edge/negative cases present.
 - **No implementation leakage** — tests assert the contract, not one algorithm.

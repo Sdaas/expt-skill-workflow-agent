@@ -7,7 +7,9 @@
 
 ## Test inventory
 Each test maps to an acceptance criterion or a boundary. Cover happy path, edge cases,
-negative/error cases, and every boundary in the inventory.
+negative/error cases, and every boundary in the inventory. For an error case whose
+exception message carries required diagnostic content, the row's assertion must pin the
+message (`pytest.raises(T, match=…)`), not just the exception type.
 
 | ID | Level (unit/api/e2e) | What it asserts | Traces to (AC# / boundary) |
 |----|----------------------|-----------------|----------------------------|

@@ -67,3 +67,8 @@ drifts (P46). So:
 ## Best-practices the reviews enforce
 Modularity/cohesion · purity / minimal side-effects · clear naming · full type
 annotations · docstrings on public surface · honor the constraints in `requirements.md`.
+
+**Error-path tests assert the exception _message contract_, not just the type.** When the
+interface specifies that an exception's message carries diagnostic content (e.g. the
+offending type or value), use `pytest.raises(T, match=…)` — a bare `pytest.raises(T)` lets
+a mutated/garbled message ship undetected.
