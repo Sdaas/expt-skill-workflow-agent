@@ -394,7 +394,14 @@ Update this section as work proceeds — it is the resume anchor.
   v1.1/backlog, overlaps #18).
 - Unit tests: **65 green on host** (was 58 + 5 heredoc + 2 `--out`).
 
-### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
+### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED (NEXT)
+- **Carry-in task (decided 2026-09-11):** apply the fault-injection nudge during the DG rewrite —
+  the resiliency review + `test-plan-template.md` must require at least one **transport-level**
+  fault test (timeout/connect failure) for any network-boundary feature, distinct from
+  response-level 5xx/body faults. Touch-points: `quality-standards.md`, `test-plan-template.md`,
+  `agents/test-writer.md`, `agents/code-reviewer.md`. See `design/fault-injection-findings.md` §4.
+- Both design findings (`model-pinning-findings.md`, `fault-injection-findings.md`) feed the DG's
+  ADRs + testing-methodology + design-principles sections.
 
 ### Phase 4 — Second feature (file-I/O + async-REST + fault injection) + dry run — ✅ DONE 2026-09-11
 - **Ran** `/implement-feature` for the async cached JSON fetcher (`CachedFetcher`) on

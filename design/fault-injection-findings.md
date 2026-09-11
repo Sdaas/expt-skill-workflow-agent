@@ -76,8 +76,8 @@ dimension (and the test-plan template) should require **at least one transport-l
   boundaries.
 - `agents/test-writer.md` / `agents/code-reviewer.md` — one line so the rubric is applied.
 
-Deferred pending the user's call: fold into Phase 3 (DG rewrite touches these files anyway), or
-make the minimal edit now. Recorded here either way.
+**DECIDED (2026-09-11): fold into Phase 3** — apply this nudge to the touch-points above during
+the DG rewrite (which edits these files anyway). Not an open question; a committed Phase 3 task.
 
 ## 5. Consequences
 
