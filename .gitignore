@@ -6,6 +6,8 @@
 # /implement-feature per-run process artifacts (handoff files + run-log). Code the
 # workflow writes lives in the repo's own src/tests and IS committed; these are not.
 .implement-feature/
+# Fallback guard-audit run-log written at the repo root when no active run dir exists.
+if-runlog.jsonl
 
 # Python (for the real product later)
 __pycache__/
