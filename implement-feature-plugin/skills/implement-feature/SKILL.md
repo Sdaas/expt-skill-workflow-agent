@@ -128,6 +128,26 @@ the session transcript for per-agent **model + token** figures. See
 
 ---
 
+## Output style — every human-facing STOP summary
+
+Render gate summaries **concise but readable, drawing focus to deviations.** The human is
+skimming for the one thing that needs a decision — do not bury it in boilerplate.
+
+- **Status glyph leads each line:** **✅** all-good · **⚠️** a deviation the human must decide
+  on · **🔴** a hard-fail that STOPs the run.
+- **The happy path is terse — one line per fact.** A clean check is a single line; **expand
+  only what deviates.** A ⚠️/🔴 earns its detail *and its remedy* (what to do about it);
+  everything green stays a one-liner.
+- **Never print boilerplate that is identical every run** (e.g. the full 8-row model-plan
+  table) unless a deviation makes it worth reading. Collapse it to one line when clean;
+  expand it only to show the offending row.
+- **State a deviation once.** Carry the ⚠️ + its remedy on the headline line for that fact;
+  don't repeat the same warning in a second place.
+
+Gate 0 below is the first application of this style; later STOP gates follow the same rules.
+
+---
+
 ## Gate 0 — CLASSIFY + MODEL PLAN + PREFLIGHT  [C] ↔ human
 
 0. **Single-run lock (first action).** Check for `$CLAUDE_PROJECT_DIR/.implement-feature/.active-run`.
@@ -162,9 +182,9 @@ the session transcript for per-agent **model + token** figures. See
      Process artifacts must never be committed — `if-runlog.jsonl` is the guard's fallback
      audit file, written to the repo root before this workdir exists and after the lock is
      cleared (the pointer only routes to `handoff/run-log.jsonl` while `.active-run` lives).
-5. Present the **per-gate model/effort plan** below. The invariant: **design and every
-   review use a higher model (or effort) than implementation.** The human may adjust
-   any row.
+5. **Per-gate model/effort plan (canonical).** The invariant: **design and every review use
+   a higher model (or effort) than implementation.** This is the reference plan — you render
+   it per the display rule in step 8, not verbatim.
 
    | Gate | Runs as | Model / effort | Why |
    |---|---|---|---|
@@ -179,29 +199,62 @@ the session transcript for per-agent **model + token** figures. See
 
    Subagent models are pinned in `agents/*.md` as the **aliases** `opus` / `sonnet`, which
    resolve to the latest tier available in the environment (e.g. Opus 5 / Sonnet 5) — do
-   not hardcode a dated ID. **Conductor `[C]` gates run on the session's own model** (the
-   plugin cannot pin it), so honoring the "Opus for design" rows depends on the human.
+   not hardcode a dated ID; **those 5 `[I]` rows can never deviate.** **Conductor `[C]` gates
+   run on the session's own model** (the plugin cannot pin it), so only the three `[C]` rows
+   can be wrong — and only when the session's tier is *below* that row's required tier
+   (INTERVIEW/DESIGN want Opus; REVIEW-GUIDE/COMMIT is *correct* on Sonnet/Haiku).
 
-6. **Conductor model self-check (P56).** A plugin cannot set the conductor's own model, so
-   **state the model you are currently running as** and compare it to the `[C]` rows above.
-   **If you are not on an Opus-tier model, WARN the human**: INTERVIEW/DESIGN will run below
-   the recommended design-grade strength (and DESIGN would then be no stronger than the
-   `implementer`), and offer relaunching with `claude --model opus`. The human may proceed
-   or relaunch; record the actual conductor model in the run-log either way.
+6. **Conductor model self-check (P56) — the single deviation notice.** A plugin cannot set
+   the conductor's own model. **Detect the model you are running as** and compare it to the
+   `[C]` rows. This check owns the model-deviation warning (do not repeat it elsewhere):
+   - **Opus-tier** → the ✅ conductor line in the render.
+   - **Below Opus-tier** → the ⚠️ conductor line: name the model, state that INTERVIEW/DESIGN
+     will run below design-grade strength (DESIGN no stronger than the `implementer`), and
+     give the remedy `claude --model opus`. This same condition is what **expands** the model
+     table in step 8. Record the actual conductor model in the run-log either way.
 
-7. **Branch decision (never commit on the default branch — P52).** Note the current branch
-   (`git rev-parse --abbrev-ref HEAD`) and the repo's default branch (e.g. `main`/`master`).
-   **Assess the feature's scope** and recommend:
-   - **trivial** change → stay on the current branch (only if it is **not** the default);
-   - **non-trivial** change → a new feature branch `feature/<NN-slug>` (the run slug minus
-     the timestamp, so branch↔artifacts correspond).
+7. **Branch decision (never commit on the default branch — P52).** Detect the current branch
+   (`git rev-parse --abbrev-ref HEAD`) and the repo's default branch (e.g. `main`/`master`),
+   **assess scope**, and decide:
+   - **trivial** change *and* not on the default → stay on the current branch;
+   - **non-trivial** change → new feature branch `feature/<NN-slug>` (run slug minus the
+     timestamp, so branch↔artifacts correspond);
+   - **HEAD is the default branch → a new branch is REQUIRED** regardless of triviality
+     (**hard invariant**). The human may override the *triviality* call, never this rule.
 
-   **Hard invariant:** no change — however trivial — may be committed on the **default
-   branch**. **If HEAD is the default branch, a new branch is REQUIRED** regardless of
-   triviality; recommend and default to creating `feature/<NN-slug>`. The human may
-   override the *triviality* call, but **not** the never-on-default rule. On "new branch",
-   the conductor runs `git switch -c feature/<NN-slug>` (or `git checkout -b`) and records
-   the branch in the run-log; the commit later lands there (Gate 10).
+   On "new branch", the conductor runs `git switch -c feature/<NN-slug>` (or `git checkout
+   -b`) and records the branch in the run-log; the commit later lands there (Gate 10). The
+   render (step 8) shows the working branch on one line, and a **terse reason only when the
+   choice is forced/atypical** (e.g. new branch because HEAD is the default) — no rationale
+   on the ordinary case.
+
+8. **Render the Gate 0 summary** per the two templates below. Follow the Output-style rules:
+   glyph-led, terse on the happy path, expand only deviations.
+
+   **(a) Preflight failed → terminal render (nothing else prints; the run STOPs):**
+   > 🔴 **Preflight failed — `<tool>` not found.** This workflow runs inside the dev
+   > container; rebuild/enter it (`.devcontainer` postCreate installs
+   > `toolchain/requirements-dev.txt`), then re-run. Stopping.
+
+   **(b) Preflight passed → full Gate 0 summary:**
+   > ✅ **Preflight passed** — ruff `<v>`, mypy `<v>`, pytest `<v>`, mutmut `<v>`. No
+   > active-run lock.
+   >
+   > **Gate 0 — layout · model · branch**
+   > - **Feature:** `<one-sentence restatement>`
+   > - **Code root:** `<code_root>`  ·  **Test root:** `<tests_root>`
+   > - `<conductor line>` — ✅ `Conductor model: <model> (Opus-tier) — design/interview at
+   >   full strength.` **or** ⚠️ `Conductor model: <model> — INTERVIEW & DESIGN will run below
+   >   design-grade (no stronger than the implementer). Relaunch with `claude --model opus`,
+   >   or proceed as-is.`
+   > - **Branch:** `<working-branch>` `<(new — <reason>) only if forced/atypical>`
+   > - `<model-plan line>` — **when the conductor is Opus-tier (clean):** ✅ `Model plan:
+   >   design & reviews on Opus, impl/verify on Sonnet (subagents pinned).` **when the
+   >   conductor is below Opus-tier:** print the full table instead, showing the *actual*
+   >   conductor model on the three `[C]` rows and a `⚠️` marker on the INTERVIEW & DESIGN
+   >   rows only (no second remedy — it's on the conductor line).
+   >
+   > **STOP — confirm layout, model plan, and branch before I begin.**
 
 **STOP. Do not begin any work until the human confirms the code layout, the model plan,
 and the branch decision.** Record the confirmed plan (with `<code_root>`, `<tests_root>`,
