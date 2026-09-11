@@ -1,9 +1,31 @@
 """Tests for the load-bearing run-log reader."""
 from __future__ import annotations
 
-from analyzer.runlog import parse_runlog
+from analyzer.runlog import bash_write_targets, parse_runlog, reviewer_write_denied
 
 from .conftest import call, write_runlog
+
+
+def test_heredoc_body_blockquotes_not_parsed_as_redirections():
+    # The (ii) run exposed this: a reviewer writing its sanctioned handoff outbox via
+    # `cat > … <<EOF` whose markdown body has `>` blockquote lines yielded phantom
+    # redirect targets (`Canonical`, `Reviewer`) from inside the body.
+    cmd = ("cat > /x/handoff/06-test-review-findings.md <<'EOF'\n"
+           "# Findings\n> Canonical handoff file: `06`\n> Reviewer did not write.\nEOF")
+    targets = bash_write_targets(cmd)
+    assert targets == ["/x/handoff/06-test-review-findings.md"]
+    assert not any(reviewer_write_denied(t) for t in targets)
+
+
+def test_real_redirection_before_heredoc_still_detected():
+    assert bash_write_targets("cat > src/ref.py <<'EOF'\nx=1\nEOF") == ["src/ref.py"]
+
+
+def test_second_redirection_after_heredoc_still_detected():
+    cmd = "cat > /x/handoff/06.md <<'EOF'\n> body\nEOF\ncat > src/ref.py <<'E2'\ny\nE2"
+    targets = bash_write_targets(cmd)
+    assert "src/ref.py" in targets
+    assert "body" not in targets
 
 
 def _check(analysis, name):

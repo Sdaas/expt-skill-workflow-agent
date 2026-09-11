@@ -25,7 +25,7 @@ exported env, hence the pointer file rather than an env var):
   3. today's fallback $CLAUDE_PROJECT_DIR/if-runlog.jsonl, else
   4. /tmp/if-runlog.jsonl.
 """
-import json, os, sys, datetime, shlex
+import json, os, re, sys, datetime, shlex
 
 def _active_run_runlog():
     """Resolve the run-log from the .active-run pointer file, if present/usable."""
@@ -130,10 +130,31 @@ def reviewer_write_denied(target: str) -> bool:
         return False   # tiny throwaway probes are legitimate (P45)
     return True        # anything else = the product tree / repo -> denied
 
+# Heredoc start: `<<`, optional `-`, optional ws, optional quote, delimiter word.
+_HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+
+def _strip_heredocs(command: str) -> str:
+    """Drop heredoc *bodies* so their literal text (e.g. markdown `>` blockquotes) is never
+    mistaken for shell redirections. The `cmd > file <<EOF` redirection sits OUTSIDE the
+    body and is preserved. KEEP IN SYNC with analyzer/runlog.py."""
+    lines = command.split("\n")
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        out.append(lines[i])
+        m = _HEREDOC_RE.search(lines[i])
+        i += 1
+        if m:
+            delim = m.group(2)
+            while i < len(lines) and lines[i].strip() != delim:
+                i += 1
+            i += 1  # consume the terminator line (not a command)
+    return "\n".join(out)
+
 def bash_write_targets(command: str) -> list[str]:
     """Best-effort: the paths a Bash command redirects/writes into (`>`, `>>`, `tee`).
     Bash write-detection is inherently fragile (P44) — key on the targets we can see."""
-    toks = _bash_tokens(command)
+    toks = _bash_tokens(_strip_heredocs(command))
     targets: list[str] = []
     for i, tok in enumerate(toks):
         stripped = tok.lstrip("012")  # 1>, 2>> ...

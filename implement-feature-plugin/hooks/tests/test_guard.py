@@ -217,6 +217,27 @@ def test_reviewer_bash_probe_to_scratch_allowed(tmp_path):
     assert rc == 0
 
 
+def test_reviewer_heredoc_markdown_body_allowed(tmp_path):
+    # The (ii) run exposed this: writing the sanctioned handoff outbox via `cat > … <<EOF`
+    # whose markdown body has `>` blockquote lines was false-denied — the body `>` parsed
+    # as a shell redirection to a phantom file (`Canonical`, `Reviewer`).
+    cmd = ("cat > /repo/.implement-feature/r/handoff/06-test-review-findings.md <<'EOF'\n"
+           "# Findings\n> Canonical handoff file: `06`\n> Reviewer did not write tests.\nEOF")
+    rc, _ = run_guard(call("Bash", cmd, agent_type=REVIEWER),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0
+
+
+def test_reviewer_second_heredoc_into_product_still_denied(tmp_path):
+    # Stripping heredoc bodies must not blind us to a real redirection after one.
+    cmd = ("cat > /repo/.implement-feature/r/handoff/06.md <<'EOF'\n> body\nEOF\n"
+           "cat > src/ref.py <<'E2'\ny=1\nE2")
+    rc, out = run_guard(call("Bash", cmd, agent_type=REVIEWER),
+                        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert "product tree" in json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"]
+
+
 def test_reviewer_may_run_pytest(tmp_path):
     # A read-ish Bash with no write redirection must not be denied.
     rc, _ = run_guard(call("Bash", "python -m pytest -q", agent_type=REVIEWER),
