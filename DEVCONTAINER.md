@@ -60,6 +60,25 @@ but deletes nothing.
 
 Only removing the **volume** loses state you'd notice (you re-login). Code is never at risk.
 
+### Claude Code UX inside the container (status line, hooks, settings)
+
+The container's Claude gets a curated setup provisioned from **`.devcontainer/claude/`** by the
+`postStartCommand` (runs every start, idempotent):
+
+- **`statusline-command.sh`** + **`smart_rm_hook.sh`** are refreshed into `~/.claude/` on every
+  start (static scripts — safe to overwrite). The status line shows dir · branch · `user@host` ·
+  model · effort · context %; the smart-rm hook auto-allows `/tmp` + `*.tmp` deletions.
+- **`settings.json`** is written **only if absent**, so a **fresh volume self-heals** but your
+  in-session `/config` and plugin toggles are **never clobbered**. It ships: permissive sandbox
+  permissions (`Bash(*)`, `defaultMode: auto`), the status line + smart-rm hook, `document-quality-pdf`
+  off, and the enabled plugins/marketplaces (`implement-feature`, `mattpocock-skills`,
+  `understand-anything`).
+- **Intentionally NOT ported:** the Mac's `Stop` / `Notification` **osascript** alert hooks — they're
+  macOS-only and meaningless in a headless container.
+
+To re-apply the template after you've changed settings in-session: `rm ~/.claude/settings.json` and
+restart the container (or copy `.devcontainer/claude/settings.json` in by hand).
+
 ---
 
 ## (b) VS Code — Command Palette (⇧⌘P / Cmd-Shift-P)

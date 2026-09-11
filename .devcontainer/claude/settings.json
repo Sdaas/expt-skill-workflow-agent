@@ -1,0 +1,70 @@
+{
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(git push:*)"
+    ],
+    "ask": [
+      "Bash(git rm *)"
+    ],
+    "defaultMode": "auto"
+  },
+  "skillOverrides": {
+    "document-quality-pdf": "off"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/bin/bash /home/vscode/.claude/statusline-command.sh"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(rm *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash /home/vscode/.claude/smart_rm_hook.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "implement-feature@toy-local-marketplace": true,
+    "mattpocock-skills@mattpocock": true,
+    "understand-anything@understand-anything": true
+  },
+  "extraKnownMarketplaces": {
+    "toy-local-marketplace": {
+      "source": {
+        "source": "directory",
+        "path": "/workspaces/expt-skill-workflow-agent"
+      }
+    },
+    "mattpocock": {
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills"
+      }
+    },
+    "understand-anything": {
+      "source": {
+        "source": "github",
+        "repo": "Egonex-AI/Understand-Anything"
+      }
+    }
+  },
+  "modelSettings": {
+    "claude-sonnet-5": {
+      "effortLevel": "medium"
+    }
+  },
+  "tui": "fullscreen",
+  "theme": "auto",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
+}
