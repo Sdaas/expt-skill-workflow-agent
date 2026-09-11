@@ -26,12 +26,15 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
   triage items handled: two guard false-positives (`2>&1`→`&1`, `/dev/null`), P56 conductor-model
   self-check, (a) gitignore the `if-runlog.jsonl` fallback, (b) P57 smallest-viable scope anchor.
   See §5 Phase 2 for detail. **58 unit tests green on host.**
-- **NEXT (resume here): decide Phase 3 (docs) vs a confirming re-run vs Phase 4.** Options:
+- **Phase 2 (ii): DONE 2026-09-11** — the confirming minimal `slugify` dry run ran green
+  (P56+P57 confirmed live; 5/5 isolation after the heredoc fix). Five fixes + 2 backlog issues
+  landed this session; see §5 Phase 2 (ii). **Host: 65 unit tests green.**
+- **NEXT (resume here): decide Phase 3 (docs) vs Phase 4 (big feature).** Options:
   (i) **Phase 3** — write README router + UG + DG + Tutorial (absorb PATTERNS/TUTORIAL/etc. per §3
-  doc-fate map); (ii) a quick **second minimal dry run** to confirm P57 (scope anchor) + P56
-  (model self-check) actually change conductor behavior before the big feature; (iii) **Phase 4** —
-  the file-I/O + async-REST feature + fault-injection dry run. Recommended: (ii) then (iii), or
-  straight to (i) if docs are the priority.
+  doc-fate map); (ii) **Phase 4** — the file-I/O + async-REST feature + fault-injection dry run
+  (fixture `~/test-implement-feature` is already scaffolded for it). Recommended: **Phase 4**
+  (two green dry runs = done), then Phase 3 docs describe the finished reality — or straight to
+  Phase 3 if docs are the priority.
 
   **Dry-run mechanics to remember (see memory `phase2-dryrun-mechanics`):** the container runs the
   plugin from a **hard-synced cache** at `~/.claude/plugins/cache/toy-local-marketplace/implement-feature/0.1.0/`
@@ -313,6 +316,39 @@ Update this section as work proceeds — it is the resume anchor.
   if we care: separate files again, or have the analyzer skip lines with a `gate` key.
 - **Also noted:** feature 1 became `->float` (not the plan's `->int`) — fine, interview is the spec.
 - Unit tests: **58 green on host**; `parse_duration` suite green in container (304 tests, 100% cov).
+
+### Phase 2 (ii) — Second minimal dry run (`slugify`) — ✅ DONE 2026-09-11
+- **Ran** `/implement-feature slugify` on a fresh minimal fixture (`~/test-if-minimal`,
+  pure-python `textkit`), all gates 0→11, ending in a real commit on `feature/00-slugify`
+  (never on `master` — #8 held). **P56 + P57 confirmed live** (conductor model self-check
+  fired; Gate 1 anchored to smallest-viable, no scope explosion). Model split
+  transcript-proven: reviews=**opus-5**, impl/tests/verify=**sonnet-5** (this run predates
+  the 4.8 pin below). CODE-REVIEW converged after one `→TESTS` repair (missing `match=` on
+  a `TypeError` message).
+- **Findings + fixes landed this session (branch):**
+  - **#5 read-tax is live-confirmed NOT silenced by the cache-path allow-rule** — the
+    container's directory-source marketplace loads the plugin from the **workspace**
+    (`/workspaces/…/implement-feature-plugin/**`), so the fixture's cache-path glob never
+    matched. Fixtures patched with the workspace glob (container-only; a real GitHub install
+    gets the cache path, which the UG will document).
+  - **Cache-vestigial theory CONFIRMED** — the run-log shows **9/9 plugin-file reads from the
+    workspace, 0 from the cache**. The rsync-into-cache ritual is unnecessary; workspace edits
+    take effect after a session restart. (Memory `phase2-dryrun-mechanics` corrected.)
+  - **Q1 — reviewer gates pinned to `claude-opus-4-8`** (explicit, not the floating `opus`
+    alias). Commit `e093182`.
+  - **Q2 — exception-message test-quality shifted left** of the mutation gate (standards +
+    test-writer + test-reviewer + test-plan template). Commit `582d4a6`.
+  - **Gate 11 report now persisted** to `<artifact_dir>/run-report.md` via a new analyzer
+    `--out` flag (TDD). Commit `d719156`.
+  - **Heredoc parser bug fixed** (guard + analyzer, TDD) — `bash_write_targets` parsed
+    markdown `>` blockquotes inside heredoc bodies as redirections, which (a) made the guard
+    DENY the reviewer's legit `cat > handoff/06.md <<EOF` write at runtime and (b) emitted a
+    false isolation VIOLATION. Now strips heredoc bodies first; real (ii) run-log re-analyzes
+    to **5/5, clean**. Commit `f87e46c`.
+- **New backlog issues filed:** **#20** (parametrize homogeneous test-case families;
+  v1.1/backlog), **#21** (clean-run harness: destroy + rebuild a fresh container per dry run;
+  v1.1/backlog, overlaps #18).
+- Unit tests: **65 green on host** (was 58 + 5 heredoc + 2 `--out`).
 
 ### Phase 3 — Docs restructure (README router + UG + DG + Tutorial) — ⬜ NOT STARTED
 
