@@ -46,7 +46,7 @@ The plugin is published through a marketplace in this repo. Register the marketp
 claude plugin marketplace add Sdaas/expt-skill-workflow-agent
 
 # install the plugin from it
-claude plugin install implement-feature@toy-local-marketplace
+claude plugin install implement-feature@daas-plugins
 ```
 
 Then, inside a Claude Code session, activate it in the current session:
@@ -62,10 +62,9 @@ claude plugin list
 claude plugin marketplace list
 ```
 
-> **Note on the marketplace name.** The marketplace is currently named `toy-local-marketplace` (a
-> leftover from this repo's origins as a tutorial). That's the name you install against today; it does
-> not affect how the plugin behaves. Use the CLI form above rather than typing `/plugin install …` as
-> a one-liner in a session — the interactive one-liner can silently open the manager UI and no-op.
+> **Tip.** Use the CLI form above (`claude plugin install …`) rather than typing `/plugin install …`
+> as a one-liner inside a session — the interactive one-liner can silently open the manager UI and
+> no-op.
 
 ### 3b. Install the pinned toolchain into your project's environment
 
@@ -224,4 +223,4 @@ transcript.
 
 **How do I uninstall it?**
 `claude plugin uninstall implement-feature`, and optionally
-`claude plugin marketplace remove toy-local-marketplace`. Everything is reversible.
+`claude plugin marketplace remove daas-plugins`. Everything is reversible.

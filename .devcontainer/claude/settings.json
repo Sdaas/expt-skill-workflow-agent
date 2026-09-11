@@ -34,12 +34,12 @@
     ]
   },
   "enabledPlugins": {
-    "implement-feature@toy-local-marketplace": true,
+    "implement-feature@daas-plugins": true,
     "mattpocock-skills@mattpocock": true,
     "understand-anything@understand-anything": true
   },
   "extraKnownMarketplaces": {
-    "toy-local-marketplace": {
+    "daas-plugins": {
       "source": {
         "source": "directory",
         "path": "/workspaces/expt-skill-workflow-agent"

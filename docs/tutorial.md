@@ -152,7 +152,7 @@ Then, inside the container's Claude session:
 /plugin marketplace add /workspaces/expt-skill-workflow-agent
 ```
 ```bash
-claude plugin install toy-greet@toy-local-marketplace   # CLI form is deterministic
+claude plugin install toy-greet@daas-plugins   # CLI form is deterministic
 ```
 ```
 /reload-plugins
