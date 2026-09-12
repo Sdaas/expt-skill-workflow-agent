@@ -4,6 +4,7 @@ input=$(cat)
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // "?"')
 model=$(echo "$input" | jq -r '.model.display_name // "?"')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+used_tokens=$(echo "$input" | jq -r '((.context_window.total_input_tokens // 0) + (.context_window.total_output_tokens // 0))')
 effort=$(echo "$input" | jq -r '.effort.level // empty')
 home="$HOME"
 short_cwd="${cwd/#$home/\~}"
@@ -27,7 +28,12 @@ fi
 ctx_info=""
 if [ -n "$used_pct" ]; then
   ctx_pct=$(printf '%.0f' "$used_pct")
-  ctx_info=" ctx:${ctx_pct}%"
+  if [ "$used_tokens" -ge 1000 ]; then
+    ctx_tokens=$(awk -v t="$used_tokens" 'BEGIN { printf "%.1fK", t / 1000 }')
+  else
+    ctx_tokens="$used_tokens"
+  fi
+  ctx_info=" ctx:${ctx_tokens}(${ctx_pct}%)"
 fi
 printf "\033[34m%s\033[0m\033[32m%s\033[0m \033[90m%s\033[0m \033[33m%s\033[0m\033[35m%s\033[0m\033[36m%s\033[0m" \
   "$short_cwd" "$git_branch" "$user_host" "$model" "$effort_info" "$ctx_info"
