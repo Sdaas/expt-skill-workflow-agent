@@ -225,6 +225,38 @@ subagent. Reliability-critical config ships with the plugin.
 Keep `guard.py` and the analyzer's isolation predicates in sync — they implement the same secret /
 test-path / reviewer-write rules (preventive vs detective).
 
+### Known limitation — Bash enforcement is best-effort
+
+The guard is a **string-inspecting PreToolUse hook**, not an OS-level sandbox. For `Read`, `Write`,
+`Glob`, and `Grep` the tool names a single, inspectable target, so the allow/deny rules are precise.
+For **`Bash`, enforcement is best-effort**, and this is a deliberate, documented boundary:
+
+- **Reads through Bash are unbounded.** The algorithm-blind rule matches the literal substring
+  `design-internal` in the command string, so a *wildcard* read — `cat handoff/*.md`, `head
+  handoff/0[23]-*` — does not contain the literal and is **not denied**. There is no way to know, by
+  inspecting a shell string, the full set of files a command like `python -c …` or a pipeline will
+  read.
+- **Writes through Bash are only partially covered.** The test-integrity rule (implementer must not
+  edit tests) and reviewer write-confinement fire for `Write`/`Edit`/`NotebookEdit`. A `Bash` write to
+  a test file — `sed -i … tests/test_foo.py`, a `cat > … <<EOF` heredoc — is currently **audited but
+  not denied** for the implementer (reviewer-confinement *does* resolve Bash redirect targets, but
+  does not yet cover `sed -i`/`cp`/`mv` forms).
+- **The audit inherits the same blind spot.** The analyzer's isolation checks read the same run-log
+  through the same substring predicates, and the run-log records the Bash *command string* (today
+  truncated to 300 chars), not the files the command actually touched — so a Bash bypass is invisible
+  to the detective leg too.
+
+**Why this is acceptable for v1:** the guard is **defense-in-depth** — each isolated agent's role
+instructions already tell it what it may read/write, and the agent usually declines on its own; the
+hook is a backstop, not the sole line of defense. The bar for this plugin is *best-effort isolation,
+enforced and audited*, not cryptographic airtightness.
+
+**The real fix is a redesign, not more parsing.** Closing this class of bug means a single declarative
+per-agent **policy** (deny-by-default allow-lists) feeding two mechanisms — a fast in-hook enforcer and
+an **independent** post-hoc auditor that keys off the *session transcript* (what each agent actually
+saw), not the command string. That work is tracked in #30, which subsumes the ad-hoc findings #27 and
+#29.
+
 ---
 
 ## 5. The analyzer — measurement, never orchestration
