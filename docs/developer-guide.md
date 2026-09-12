@@ -8,6 +8,24 @@ the design principles distilled from building it, and the testing methodology. I
 
 ---
 
+## 0. Recommended reading order
+
+A new developer should read the sections below in this order rather than top-to-bottom on a first
+pass:
+
+1. **§1 The core idea** — the declarative-workflow premise everything else assumes.
+2. **§2 Architecture** — the conductor/isolated-subagent split and the handoff contract.
+3. **§6 ADRs** — *why* the architecture landed where it did; skip this on a skim, but read it before
+   proposing a structural change.
+4. **§4 The guard hook** — the enforcement mechanism behind the isolation guarantees.
+5. **§3 Model & effort pinning** — how gates get their model/effort, and where that's declared.
+6. **§5 The analyzer** — how a run is measured after the fact.
+7. **§7 Design principles** and **§8 Testing & dry-run methodology** — read once you're ready to make
+   a change and need to know how it'll be validated.
+8. **§9 When you edit the product** — the checklist to follow while actually making the change.
+
+---
+
 ## 1. The core idea: a declarative workflow, no orchestration code
 
 The whole product is expressed **declaratively**. There is no hand-written driver that calls "phase 1,
