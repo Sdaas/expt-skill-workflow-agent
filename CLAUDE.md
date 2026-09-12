@@ -2,74 +2,64 @@
 
 This file provides guidance to Claude Code when working in this repository.
 
-## What this repo is
-A **one repo** that ships a genuinely-usable `implement-feature` Claude Code plugin, with a top-level
-`README.md` routing **three audiences** — the docs hold the audience-facing detail; point at them
-rather than duplicating them here:
-- **User Guide** (`docs/user-guide.md`) — install from GitHub, Python-only setup + toolchain
-  prerequisite, how to run, FAQ. For a real user on their **own machine / own repo**.
-- **Developer Guide** (`docs/developer-guide.md`) — architecture, ADRs, design principles, the guard
-  hook, the analyzer, and the testing / dry-run methodology. For someone improving the plugin.
-- **Tutorial** (`docs/tutorial.md`) — concepts (plugin vs command vs skill vs workflow) + subagent
-  isolation, with `toy-greet-plugin/` as the runnable example.
+## Repo Contents
 
-Two plugins live here: `toy-greet-plugin/` (a minimal 2-gate example, kept for the Tutorial) and
-`implement-feature-plugin/` (**the product**). Both are published through
-`.claude-plugin/marketplace.json` (the `daas-plugins` marketplace).
+- Ships `implement-feature` plugin that turns a one-line feature request into a reviewed, tested, committed python change — through an interview-driven, test-first, human-in-the-loop workflow.
+- Top-level `README.md` routing to three audiencnes
+  - **User Guide** (`docs/user-guide.md`) — install from GitHub, Python-only setup + toolchain
+  prerequisite, how to run, FAQ. For a real user on their **own machine / own repo**.
+  - **Developer Guide** (`docs/developer-guide.md`) — architecture, ADRs, design principles, the guard
+  hook, the analyzer, and the testing / dry-run methodology. For someone improving the plugin.
+  - **Tutorial** (`docs/tutorial.md`) — concepts (plugin vs command vs skill vs workflow) + subagent isolation, with `toy-greet-plugin/` as the runnable example.
+- `toy-greet-plugin/` a minimal 2-gate example, kept for the Tutorial
+- Both are published through `.claude-plugin/marketplace.json` (the `daas-plugins` marketplace).
 
 ## Working conventions
 - **Process:** plan → approve → phased execution. Commit per **logical unit**. Keep git history.
-- **Bar:** *genuinely usable* — a stranger can install from GitHub and run it against their own Python
-  repo. "Done" = a **green end-to-end dry run in the dev container** (see `DEVCONTAINER.md`), not
-  "docs exist."
+- **Bar:** *genuinely usable* — a stranger can install from GitHub and run it against their own Python repo. "Done" = a **green end-to-end dry run in the dev container** (see `DEVCONTAINER.md`), not "docs exist."
 - Temp/scratch files go to `/tmp/` or end in `.tmp`, deleted when done.
-- Authorship for commits and generated code: **Soumendra Daas / soumendra.daas@gmail.com**.
+
 
 ## Architecture: the `/implement-feature` conductor + isolated gates
-The whole product is expressed **declaratively** — a skill (`SKILL.md`) is the "score", agent-definition
-files pin per-gate models, and a hook enforces isolation. There is no hand-written orchestration driver.
-(Full detail + the ADRs behind these choices are in `docs/developer-guide.md`.)
+The whole product is expressed **declaratively** — a skill (`SKILL.md`) is the "score", agent-definition files pin per-gate models, and a hook enforces isolation. There is no hand-written orchestration driver. (Full detail + the ADRs behind these choices are in `docs/developer-guide.md`.)
 
 - **Conductor [C]** — the interactive session running the skill
-  (`implement-feature-plugin/skills/implement-feature/SKILL.md`). It holds the through-line, talks to the
-  human, and walks 12 gates (0–11) in order.
-- **Isolated subagents [I]** — bias-sensitive gates run as **separate agents** with fresh context, a
-  **pinned model/effort**, and a **curated file inbox**. They are spawned via the Agent tool using the
-  **plugin-namespaced** `subagent_type`, e.g. `implement-feature:test-writer` (never the bare name).
-  Definitions live in `implement-feature-plugin/agents/*.md` — model/effort/tools are pinned there
-  (`effort` can only be set via agent-def frontmatter, not inline).
+  (`implement-feature-plugin/skills/implement-feature/SKILL.md`). It holds the through-line, talks to the human, and walks 12 gates (0–11) in order.
+- **Isolated subagents [I]** — bias-sensitive gates run as **separate agents** with fresh context, a **pinned model/effort**, and a **curated file inbox**. They are spawned via the Agent tool using the **plugin-namespaced** `subagent_type`, e.g. `implement-feature:test-writer` (never the bare name).
+- Definitions live in `implement-feature-plugin/agents/*.md` — model/effort/tools are pinned there (`effort` can only be set via agent-def frontmatter, not inline).
 - **The handoff contract:** every gate reads a curated inbox and writes a defined outbox **as files** —
   a gate **never** sees a prior gate's raw transcript. Code stays in the repo; gate isolation is via git
   plus a per-feature artifact dir (`.implement-feature/<run>/` with numbered handoff files). The
   interface/internal **design split** keeps the test-writer algorithm-blind: it is handed the interface
   design but **never** the internal design.
 
-Core invariants (also in `SKILL.md` → Rules): design & every review use a higher model/effort than
-implementation; green unit tests are not "Done" (VERIFY drives the real code un-mocked); bound every
-automated loop and surface to the human on no progress; **never commit before human approval**.
+Core invariants (also in `SKILL.md` → Rules): design & every review use a higher model/effort than implementation; green unit tests are not "Done" (VERIFY drives the real code un-mocked); bound every automated loop and surface to the human on no progress; **never commit before human approval**.
 
-### The guard hook (isolation is enforced, not just requested)
-`implement-feature-plugin/hooks/hooks.json` registers a **PreToolUse** hook (`hooks/scripts/guard.py`)
-that fires for the conductor **and every subagent** and keys on `agent_type`. On every
-Read/Bash/Grep/Glob/Edit/Write it: (1) **audits** — appends a JSONL line per tool call; (2) **secrets
-guardrail** — denies reading `.env`/keys/credentials for any agent; (3) **algorithm-blind** — denies the
-`test-writer` reading the internal design; (4) **test-integrity** — denies the `implementer`
-editing/writing any test file; plus reviewer write-confinement (writes only to its outbox + scratch).
+### The guard hook 
+Isolation is enforced, not just requested.
+
+`implement-feature-plugin/hooks/hooks.json` registers a **PreToolUse** hook (`hooks/scripts/guard.py`) that fires for the conductor **and every subagent** and keys on `agent_type`. On every Read/Bash/Grep/Glob/Edit/Write it does the following 
+
+- **audits** — appends a JSONL line per tool call; 
+- **secrets guardrail** — denies reading `.env`/keys/credentials for any agent; -
+- **algorithm-blind** — denies the `test-writer` reading the internal design;
+- **test-integrity** — denies the `implementer` editing/writing any test file; plus reviewer write-confinement (writes only to its outbox + scratch).
+
 A **plugin** hook (not a project-settings hook) was required for it to fire for subagents in headless.
 
-### Quality standards / toolchain (single source of truth)
-`implement-feature-plugin/skills/implement-feature/references/quality-standards.md` defines "green",
-coverage/mutation thresholds, boundary-resilience policy, and concurrency policy. The pinned toolchain is
-`implement-feature-plugin/toolchain/requirements-dev.txt` (ruff, mypy, pytest, pytest-cov, mutmut,
-hypothesis, pytest-asyncio). Gate 0 preflight hard-fails if any tool is missing. **A real user must
-install this toolchain into their own environment** (v1: documented manual install; auto-install is a
-v1.1 backlog item).
+### Quality standards / toolchain 
+`implement-feature-plugin/skills/implement-feature/references/quality-standards.md` defines "green", coverage/mutation thresholds, boundary-resilience policy, and concurrency policy. The pinned toolchain is `implement-feature-plugin/toolchain/requirements-dev.txt` (ruff, mypy, pytest, pytest-cov, mutmut, hypothesis, pytest-asyncio). 
+
+Gate 0 preflight hard-fails if any tool is missing. **A real user must install this toolchain into their own environment** (v1: documented manual install; auto-install is a v1.1 backlog item).
 
 ## Running / testing the plugin (dev container = our test harness)
-**The plugin is never installed into the Mac's global `~/.claude`.** For *our* testing it is installed and
-run inside a **dev container** with its own isolated `~/.claude` (login persisted in the named volume
+
+For development, the plugin is **never** installed into the Mac's global `~/.claude`.** For 
+our testing it is installed and run inside a **dev container** with its own isolated `~/.claude` (login persisted in the named volume
 `expt-skill-workflow-claude`), which also has the pinned Python toolchain. Full lifecycle in
-`DEVCONTAINER.md`. (A *real end user* installs on their own machine — that path is the User Guide's job.)
+`DEVCONTAINER.md`. 
+
+A *real end user* installs on their own machine — that path is the User Guide's job.
 
 ```bash
 # On the Mac, from the repo root (Docker Desktop must be running):

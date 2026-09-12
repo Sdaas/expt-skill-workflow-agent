@@ -14,7 +14,7 @@ touching your Mac's `~/.claude`**. Config lives in `.devcontainer/` at the repo 
 
 ---
 
-## (a) Lifecycle from the command line
+## Lifecycle from the command line
 
 Run these **on the Mac**, from the repo root (`~/dev/expt-skill-wotkflow-agent`).
 
@@ -81,7 +81,7 @@ restart the container (or copy `.devcontainer/claude/settings.json` in by hand).
 
 ---
 
-## (b) VS Code — Command Palette (⇧⌘P / Cmd-Shift-P)
+## VS Code — Command Palette (⇧⌘P / Cmd-Shift-P)
 
 Open the palette with **⇧⌘P**, type part of the command, hit Enter. The Dev Containers
 extension (`ms-vscode-remote.remote-containers`) must be installed.

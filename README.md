@@ -1,12 +1,12 @@
-# implement-feature
+# Contents
 
-A **Claude Code plugin** that turns a one-line feature request into a reviewed, tested, committed
-Python change — through an interview-driven, test-first, human-in-the-loop workflow.
+The main deliverable is **implement-feature** - a **Claude Code plugin** that turns a one-line feature request into a reviewed, tested, committed python change — through an interview-driven, test-first, human-in-the-loop workflow.
+
+## Implement Feature
 
 `/implement-feature` runs as a **conductor** (the interactive session that holds the through-line and
 talks to you) walking a fixed sequence of **gates**. The bias-sensitive gates — write tests, review
-tests, implement, verify, review code — run as **isolated subagents**: fresh context, a model pinned
-per role, and a curated file-only inbox. A guard hook enforces the isolation; a deterministic analyzer
+tests, implement, verify, review code — run as **isolated subagents**. A guard hook enforces the isolation; a deterministic analyzer
 proves after the fact what actually happened. There is **no hand-written orchestration code** — the
 whole workflow is expressed in Markdown, and the agent is the runtime.
 
