@@ -48,7 +48,7 @@ implement-feature-plugin/      # ← the product
 toy-greet-plugin/              # a minimal 2-gate example plugin (used by the Tutorial)
 .claude-plugin/marketplace.json  # publishes both plugins
 .devcontainer/                 # the dev container definition
-REVIEW.md, REVIEW-PROMPT.md    # the read-only review ledger and prompt used to audit this repo
+REVIEW-PROMPT.md               # read-only review methodology (findings now tracked as GitHub issues)
 ```
 
 Two plugins are published through `.claude-plugin/marketplace.json`:
