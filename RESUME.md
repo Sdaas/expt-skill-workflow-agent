@@ -57,12 +57,12 @@ container with its own isolated `~/.claude` (login persisted in the named volume
 `expt-skill-workflow-claude`). Steps 1–3 + 5 are pure repo edits on the Mac and need no container. Only
 step 4 (real install-from-GitHub verification) needs a running container.
 
-1. `cd /Users/sdaas/dev/expt-skill-workflow-agent`
+1. `cd /Users/sdaas/dev/sdlc-lite`
 2. `docker ps -a | grep expt` (or `devcontainer up --workspace-folder .` — idempotent, rebuilds only
    if the container is gone or `.devcontainer/*` changed).
 3. Shell in: `devcontainer exec --workspace-folder . bash`; or jump straight into Claude Code inside:
    `devcontainer exec --workspace-folder . claude`.
-4. Note the plugin loads **from the workspace** (`/workspaces/expt-skill-workflow-agent/
+4. Note the plugin loads **from the workspace** (`/workspaces/sdlc-lite/
    implement-feature-plugin/**`), not the vestigial `~/.claude/plugins/cache` copy — so a workspace
    edit takes effect after a **fresh container Claude session restart**, with **no cache-sync step**.
    BUT step 4's real install-from-GitHub verification deliberately exercises the *cache* path (that's
@@ -79,7 +79,7 @@ Full toolchain (ruff/mypy/mutmut) only runs in-container.
 ```
 devcontainer exec --workspace-folder . bash -lc '
   cd ~/test-implement-feature
-  PYTHONPATH=/workspaces/expt-skill-workflow-agent/implement-feature-plugin \
+  PYTHONPATH=/workspaces/sdlc-lite/implement-feature-plugin \
     python3 -m analyzer.analyze_run --workdir ~/test-implement-feature/.implement-feature/<run>/'
 ```
 (`--no-transcript` = fast isolation-only pass; `--out PATH` also saves the report — Gate 11 writes

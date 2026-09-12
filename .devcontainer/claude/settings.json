@@ -42,7 +42,7 @@
     "daas-plugins": {
       "source": {
         "source": "directory",
-        "path": "/workspaces/expt-skill-workflow-agent"
+        "path": "/workspaces/sdlc-lite"
       }
     },
     "mattpocock": {

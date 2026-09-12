@@ -16,7 +16,7 @@ touching your Mac's `~/.claude`**. Config lives in `.devcontainer/` at the repo 
 
 ## Lifecycle from the command line
 
-Run these **on the Mac**, from the repo root (`~/dev/expt-skill-wotkflow-agent`).
+Run these **on the Mac**, from the repo root (`~/dev/sdlc-lite`).
 
 ### Start / resume / get a shell
 ```bash

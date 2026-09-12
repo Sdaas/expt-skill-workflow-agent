@@ -149,7 +149,7 @@ devcontainer exec --workspace-folder . claude   # jump into Claude Code inside
 Then, inside the container's Claude session:
 
 ```
-/plugin marketplace add /workspaces/expt-skill-workflow-agent
+/plugin marketplace add /workspaces/sdlc-lite
 ```
 ```bash
 claude plugin install toy-greet@daas-plugins   # CLI form is deterministic

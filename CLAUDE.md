@@ -69,7 +69,7 @@ devcontainer exec --workspace-folder . claude # jump into Claude Code inside
 ```
 
 The container's directory-source marketplace loads the plugin **from the workspace**
-(`/workspaces/expt-skill-workflow-agent/implement-feature-plugin/**`), not the `~/.claude/plugins/cache`
+(`/workspaces/sdlc-lite/implement-feature-plugin/**`), not the `~/.claude/plugins/cache`
 copy — so a workspace edit takes effect after a fresh container Claude session restart, with no
 cache-sync step. Host unit tests (guard + analyzer, pytest-only): `python3 -m pytest
 implement-feature-plugin -q`. The full pinned toolchain (ruff/mypy/mutmut) runs only in-container.

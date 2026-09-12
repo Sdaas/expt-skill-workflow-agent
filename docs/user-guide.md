@@ -43,7 +43,7 @@ The plugin is published through a marketplace in this repo. Register the marketp
 
 ```bash
 # register this repo as a plugin marketplace
-claude plugin marketplace add Sdaas/expt-skill-workflow-agent
+claude plugin marketplace add Sdaas/sdlc-lite
 
 # install the plugin from it
 claude plugin install implement-feature@daas-plugins

@@ -86,7 +86,7 @@ this file, executes its phase, updates §5, commits. Between phases the user rel
 
   **Dry-run mechanics (confirmed, see memory `phase2-dryrun-mechanics`):** the container's
   directory-source marketplace loads the plugin **from the workspace**
-  (`/workspaces/expt-skill-workflow-agent/implement-feature-plugin/**`), **not** the
+  (`/workspaces/sdlc-lite/implement-feature-plugin/**`), **not** the
   `~/.claude/plugins/cache/...` copy (that copy is vestigial — 9/9 plugin-file reads in the (ii)
   dry run came from the workspace, 0 from the cache). **No rsync/cache-sync step is needed** — a
   workspace edit takes effect after a **session restart** (SKILL/agents load at startup; the

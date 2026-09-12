@@ -1,6 +1,6 @@
 {
   // Human-readable name shown in VS Code's UI.
-  "name": "expt-skill-workflow-agent (plugin dev)",
+  "name": "sdlc-lite (plugin dev)",
 
   // Build the image from our Dockerfile (relative to this file).
   "build": {
