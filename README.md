@@ -20,6 +20,11 @@ What that buys you:
 - **Not "done" on green tests.** A separate verifier drives the *real* feature against every
   acceptance criterion and exercises every external boundary un-mocked.
 - **You own the ship decision.** Nothing is committed until you review the real artifacts and approve.
+- **Two guarantees, proven — not just claimed.** Every gate is *isolated* (it reads only the files
+  curated for its role) and runs at a *pinned model/effort* (so cost stays bounded). The guard hook
+  prevents violations in real time; after each run a deterministic audit produces a **receipt** that
+  verifies both from the ground-truth session transcript — turning "we isolate and we bound cost"
+  from a claim into a per-run, checkable fact.
 
 ---
 

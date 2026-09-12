@@ -265,6 +265,18 @@ saw), not the command string. That work is tracked in #30, which subsumes the ad
 a run leaves behind and prints a Markdown report. It **never** calls a model, makes a decision, or
 drives a gate.
 
+**Why it exists — the receipt for the two guarantees.** `/implement-feature` makes two promises:
+**(a)** every gate is *isolated* — a subagent reads only the files curated for its role — and **(b)**
+every gate runs at a *pinned model/effort* so cost stays bounded. The guard hook prevents violations
+in real time (best-effort for `Bash`); the analyzer is the **detective** half that proves, after the
+fact, what actually happened — turning both guarantees from claims into per-run, checkable facts. Both
+are runtime-verifiable from the session transcript: the resolved `message.model` and a per-turn
+top-level `effort` field are ground truth (conductor and every subagent). The field-by-field proof
+model — which transcript / `.meta.json` field substantiates which claim — is recorded in
+[`design/audit-observability-findings.md`](../design/audit-observability-findings.md); the audit
+phase as a first-class feature is tracked in [issue #31](../../issues/31) (with #30 and #22 as its
+isolation and model/effort-integrity capabilities).
+
 Two independent readers, with the fragile one quarantined behind a boundary:
 
 - **`runlog.py`** — **load-bearing**. Parses `handoff/run-log.jsonl` (or the `if-runlog.jsonl`
