@@ -5,7 +5,7 @@ This file provides guidance to Claude Code when working in this repository.
 ## Repo Contents
 
 - Ships `implement-feature` plugin that turns a one-line feature request into a reviewed, tested, committed python change — through an interview-driven, test-first, human-in-the-loop workflow.
-- Top-level `README.md` routing to three audiencnes
+- Top-level `README.md` routing to three audiences
   - **User Guide** (`docs/user-guide.md`) — install from GitHub, Python-only setup + toolchain
   prerequisite, how to run, FAQ. For a real user on their **own machine / own repo**.
   - **Developer Guide** (`docs/developer-guide.md`) — architecture, ADRs, design principles, the guard

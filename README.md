@@ -37,15 +37,18 @@ What that buys you:
 
 ```
 README.md                      # this router
+CLAUDE.md                      # guidance for Claude Code working in this repo
 docs/
   user-guide.md                # run it on your own repo
   developer-guide.md           # understand / extend it
   tutorial.md                  # learn the underlying concepts
 DEVCONTAINER.md                # the dev-container test harness (referenced by the Developer Guide)
+design/                        # standalone design-investigation records referenced by the ADRs
 implement-feature-plugin/      # ← the product
 toy-greet-plugin/              # a minimal 2-gate example plugin (used by the Tutorial)
 .claude-plugin/marketplace.json  # publishes both plugins
 .devcontainer/                 # the dev container definition
+REVIEW.md, REVIEW-PROMPT.md    # the read-only review ledger and prompt used to audit this repo
 ```
 
 Two plugins are published through `.claude-plugin/marketplace.json`:
