@@ -174,17 +174,81 @@ def test_lookalike_dir_not_flagged(tmp_path):
     assert rc == 0
 
 
+def test_edit_of_secret_file_denied(tmp_path):
+    # #m-05: Edit reads the file to diff, but was outside the READISH secrets check.
+    secret = tmp_path / ".env"
+    secret.write_text("X=1")
+    rc, out = run_guard(call("Edit", str(secret)),
+                        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert "secret" in json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"].lower()
+
+
+def test_grep_directory_containing_secret_denied(tmp_path):
+    # #m-05: a Grep call scoped to a directory that contains .env surfaces its contents
+    # even though the Grep target itself is not a secret path.
+    (tmp_path / ".env").write_text("AWS_SECRET=shh")
+    rc, out = run_guard(
+        {"tool_name": "Grep", "tool_input": {"pattern": "AWS_SECRET", "path": str(tmp_path)},
+         "agent_type": ""},
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert "secret" in json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"].lower()
+
+
+def test_bash_recursive_grep_over_secret_directory_denied(tmp_path):
+    # #m-05: `grep -r ... <dir>` over a directory containing .env is a common,
+    # innocent-looking way to exfiltrate secret contents without a direct open.
+    (tmp_path / ".env").write_text("AWS_SECRET=shh")
+    rc, out = run_guard(call("Bash", f"grep -r AWS_SECRET {tmp_path}"),
+                        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert "secret" in json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"].lower()
+
+
+def test_bash_recursive_grep_over_clean_directory_allowed(tmp_path):
+    (tmp_path / "app.py").write_text("x = 1")
+    rc, _ = run_guard(call("Bash", f"grep -r x {tmp_path}"),
+                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 0
+
+
 # --- #12: test-reviewer write-confinement ----------------------------------
 
 REVIEWER = "implement-feature:test-reviewer"
+
+# The run's real handoff dir is derived from IF_RUNLOG's directory (guard.py's
+# `_handoff_dir()`), so confinement tests that write into "the outbox" must point
+# IF_RUNLOG at a run-log.jsonl that actually sits alongside the write target.
+HANDOFF_RUNLOG = "/repo/.implement-feature/r/handoff/run-log.jsonl"
 
 
 def test_reviewer_may_write_its_handoff_outbox(tmp_path):
     rc, _ = run_guard(
         call("Write", "/repo/.implement-feature/r/handoff/06-test-review-findings.md",
              agent_type=REVIEWER),
-        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+        env_extra={"IF_RUNLOG": HANDOFF_RUNLOG})
     assert rc == 0
+
+
+def test_reviewer_denied_spoofed_scratchpad_path(tmp_path):
+    # #m-06: "scratchpad" appearing anywhere in a product-tree path must not escape
+    # confinement — only a real temp-root prefix is sanctioned.
+    rc, out = run_guard(
+        call("Write", "/repo/scratchpad_util.py", agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_reviewer_denied_spoofed_handoff_path(tmp_path):
+    # #m-06: a product-tree path that merely contains "/handoff/" (but isn't the run's
+    # real handoff dir) must not escape confinement.
+    rc, out = run_guard(
+        call("Write", "/repo/src/handoff/impl.py", agent_type=REVIEWER),
+        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+    assert rc == 2
+    assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
 
 
 def test_reviewer_may_write_scratch_probe(tmp_path):
@@ -224,7 +288,7 @@ def test_reviewer_heredoc_markdown_body_allowed(tmp_path):
     cmd = ("cat > /repo/.implement-feature/r/handoff/06-test-review-findings.md <<'EOF'\n"
            "# Findings\n> Canonical handoff file: `06`\n> Reviewer did not write tests.\nEOF")
     rc, _ = run_guard(call("Bash", cmd, agent_type=REVIEWER),
-                      env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+                      env_extra={"IF_RUNLOG": HANDOFF_RUNLOG})
     assert rc == 0
 
 
@@ -233,7 +297,7 @@ def test_reviewer_second_heredoc_into_product_still_denied(tmp_path):
     cmd = ("cat > /repo/.implement-feature/r/handoff/06.md <<'EOF'\n> body\nEOF\n"
            "cat > src/ref.py <<'E2'\ny=1\nE2")
     rc, out = run_guard(call("Bash", cmd, agent_type=REVIEWER),
-                        env_extra={"IF_RUNLOG": str(tmp_path / "l.jsonl")})
+                        env_extra={"IF_RUNLOG": HANDOFF_RUNLOG})
     assert rc == 2
     assert "product tree" in json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"]
 

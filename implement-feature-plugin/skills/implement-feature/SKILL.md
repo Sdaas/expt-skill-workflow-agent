@@ -73,8 +73,8 @@ the read-through narrative.
 |---|---|---|
 | WRITE-TESTS [I] | `01-requirements.md` + `02-design-interface.md` + `04-test-plan.md` (**never** `03-design-internal.md`) | `<tests_root>/…` + `05-test-intent.md` |
 | TEST-REVIEW [I] | `01-requirements.md` + full design + tests + `05-test-intent.md` | `06-test-review-findings.md` |
-| IMPLEMENT [I] | tests + full design | `<code_root>/…` |
-| VERIFY [I] | `01-requirements.md` (ACs + boundary inventory) | `07-verify-report.md` |
+| IMPLEMENT [I] | `01-requirements.md` + tests + full design | `<code_root>/…` |
+| VERIFY [I] | `01-requirements.md` (ACs + boundary inventory) + `<code_root>/` | `07-verify-report.md` |
 | CODE-REVIEW [I] | `01-requirements.md` + full design + whole diff | `08-code-review-findings.md` |
 
 The interface/internal design split (Gate 2) keeps the test-writer blind to the
@@ -441,8 +441,9 @@ the changes on the next loop.
 ## Gate 5 — IMPLEMENT  [I] `implementer`  (inner loop)
 
 Delegate to `subagent_type: implement-feature:implementer` (Sonnet/high; has
-Write/Edit/Bash, pinned in `agents/implementer.md`). Its inbox is the **tests** + the
-**full** design (`02-design-interface.md` + `03-design-internal.md`) + the standards file.
+Write/Edit/Bash, pinned in `agents/implementer.md`). Its inbox is `01-requirements.md` +
+the **tests** + the **full** design (`02-design-interface.md` + `03-design-internal.md`) +
+the standards file.
 
 **Inner loop (machine condition, no human):**
 1. Write the **minimum** implementation under `<code_root>/` per the design; honor the

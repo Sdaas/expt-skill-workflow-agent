@@ -104,8 +104,8 @@ top-to-bottom to replay the run); numbers are stable under loops (a re-review ov
 |---|---|---|
 | WRITE-TESTS [I] | `01-requirements` + `02-design-interface` + `04-test-plan` (**never** `03-design-internal`) | tests + `05-test-intent` |
 | TEST-REVIEW [I] | `01` + full design + tests + `05-test-intent` | `06-test-review-findings` |
-| IMPLEMENT [I] | tests + full design | `<code_root>/…` |
-| VERIFY [I] | `01-requirements` (ACs + boundary inventory) | `07-verify-report` |
+| IMPLEMENT [I] | `01-requirements` + tests + full design | `<code_root>/…` |
+| VERIFY [I] | `01-requirements` (ACs + boundary inventory) + `<code_root>/` | `07-verify-report` |
 | CODE-REVIEW [I] | `01` + full design + whole diff | `08-code-review-findings` |
 
 The **interface/internal design split** is the mechanism that keeps the test-writer algorithm-blind:
@@ -175,9 +175,9 @@ producer gates (`test-writer`, `implementer`, `verifier`) pin the floating `sonn
 ## 4. The guard hook — isolation is enforced, not requested
 
 `hooks/hooks.json` registers a **PreToolUse** hook (`hooks/scripts/guard.py`) that fires for the
-conductor **and every subagent**, on every `Read`/`Bash`/`Grep`/`Glob`/`Edit`/`Write`. It keys on the
-`agent_type` (namespaced, e.g. `implement-feature:test-writer`) and `agent_id` carried on stdin. Four
-jobs:
+conductor **and every subagent**, on every
+`Read`/`Bash`/`Grep`/`Glob`/`Edit`/`Write`/`NotebookEdit`. It keys on the `agent_type` (namespaced,
+e.g. `implement-feature:test-writer`) and `agent_id` carried on stdin. Five jobs:
 
 1. **Audit** — appends `{ts, agent_type, agent_id, tool, target}` per tool call — a tamper-evident,
    per-agent record of exactly what each agent read. Timestamps are logged **UTC/tz-aware** so they
@@ -186,7 +186,8 @@ jobs:
    Matching is **path-component-aware and tool-split** (see the secrets ADR) so a benign Bash command
    containing `os.environ` isn't false-denied.
 3. **Algorithm-blind** — denies the **test-writer** reading `03-design-internal.md`, Read *and* Bash.
-4. **Test-integrity** — denies the **implementer** editing/writing any test file; and confines the
+4. **Draft-confinement** — denies **any subagent** reading under `handoff/draft/`.
+5. **Test-integrity** — denies the **implementer** editing/writing any test file; and confines the
    **test-reviewer**'s writes to its outbox + a scratch dir.
 
 A `deny` decision + exit code 2 hard-blocks the call. Each rule is **defense-in-depth** with the

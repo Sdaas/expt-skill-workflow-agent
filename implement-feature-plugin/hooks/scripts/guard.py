@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse guard hook for /implement-feature.
 
-Does six jobs on every Read/Bash/Grep/Glob/Edit/Write (conductor AND every subagent):
+Does six jobs on every Read/Bash/Grep/Glob/Edit/Write/NotebookEdit (conductor AND every subagent):
   1. AUDIT  — append one JSONL line per tool call (agent_id/agent_type/tool/target).
   2. SECRETS GUARDRAIL — deny reads of .env / keys / credentials for ANY agent.
   3. ALGORITHM-BLIND — deny reads of design-internal for the test-writer agent only.
@@ -99,6 +99,46 @@ def looks_secret(tool: str, target: str) -> bool:
         return any(_bash_token_is_secret(tok) for tok in _bash_tokens(target))
     return _is_secret_path(target)
 
+# --- #m-05: directory-scoped reads must not surface secret file contents ----
+# A direct open of .env is caught above by path matching. But a recursive/broad read
+# over a DIRECTORY that merely contains a secret file (`grep -r ... /repo`, a `Grep`
+# tool call scoped to a directory) returns matching secret lines without the target
+# itself ever being a secret path. Walk the directory (bounded) and look for a
+# secret-named file rather than trying to match file *contents*.
+def _dir_contains_secret(path: str, max_files: int = 5000) -> bool:
+    if not path or not os.path.isdir(path):
+        return False
+    seen = 0
+    for _root, _dirs, files in os.walk(path):
+        for f in files:
+            seen += 1
+            if seen > max_files:
+                return False  # bail out on huge trees rather than hang the hook
+            if _is_secret_component(f.lower()):
+                return True
+    return False
+
+_RECURSIVE_SEARCH_TOOLS = {"grep": "flag", "rg": "always", "ag": "always",
+                            "ack": "always", "find": "always"}
+
+def _bash_secret_dir_targets(command: str) -> list[str]:
+    """Best-effort (#m-05): directory arguments to a recursive-search-style Bash
+    command, e.g. `grep -r ... /repo`. Only fires for known recursive tools/flags —
+    conservative, not a full shell parser."""
+    toks = _bash_tokens(command)
+    if not toks:
+        return []
+    prog = os.path.basename(toks[0])
+    mode = _RECURSIVE_SEARCH_TOOLS.get(prog)
+    if mode is None:
+        return []
+    if mode == "flag":
+        recursive = any(t.startswith("-") and not t.startswith("--") and "r" in t[1:]
+                         for t in toks[1:]) or "--recursive" in toks[1:]
+        if not recursive:
+            return []
+    return [t for t in toks[1:] if not t.startswith("-") and os.path.isdir(t)]
+
 READISH = {"Read", "Bash", "Grep", "Glob"}
 WRITEISH = {"Write", "Edit", "NotebookEdit"}
 
@@ -113,9 +153,27 @@ def is_test_path(target: str) -> bool:
 # enforce the property we actually want: the test-reviewer NEVER mutates the product
 # tree. Its only sanctioned writes are its outbox (under handoff/) and throwaway probes
 # in a scratch/temp dir. Everything else — the repo's src/tests — is denied.
+#
+# Both allowlist checks are ANCHORED (real temp-root prefix / the run's actual handoff
+# dir), not free substrings — a product-tree path that merely *contains* "scratchpad",
+# "/scratch/", or "/handoff/" (e.g. `src/handoff/impl.py`) must NOT escape confinement.
+_TEMP_ROOTS = ("/tmp/", "/private/tmp/", "/var/folders/")
+
 def _is_scratch_path(t: str) -> bool:
-    return ("/tmp/" in t or t.startswith("/tmp") or "/private/tmp/" in t
-            or "/var/folders/" in t or "scratchpad" in t or "/scratch/" in t)
+    if t == "/tmp":
+        return True
+    tn = t if t.endswith("/") else t + "/"
+    return any(tn.startswith(root) for root in _TEMP_ROOTS)
+
+def _handoff_dir() -> str:
+    """The run's real handoff dir: the directory containing run-log.jsonl (by
+    convention <artifact_dir>/handoff/run-log.jsonl — see runlog_path())."""
+    return os.path.normpath(os.path.dirname(runlog_path()))
+
+def _is_handoff_path(t: str) -> bool:
+    handoff = _handoff_dir()
+    tn = os.path.normpath(t)
+    return tn == handoff or tn.startswith(handoff + os.sep)
 
 def reviewer_write_denied(target: str) -> bool:
     """True if the test-reviewer must NOT write here (i.e. not its outbox/scratchpad)."""
@@ -124,7 +182,7 @@ def reviewer_write_denied(target: str) -> bool:
         return False
     if t.startswith("/dev/"):
         return False   # /dev/null etc. are the bit bucket, not the product tree
-    if "/handoff/" in t or t.startswith("handoff/"):
+    if _is_handoff_path(t):
         return False   # its named outbox (06-test-review-findings.md) lives under handoff/
     if _is_scratch_path(t):
         return False   # tiny throwaway probes are legitimate (P45)
@@ -205,10 +263,24 @@ def main():
         }}))
         sys.exit(2)
 
-    # 2. SECRETS GUARDRAIL — any agent, read-ish tools
-    if tool in READISH and looks_secret(tool, target):
+    # 2. SECRETS GUARDRAIL — any agent, read-ish tools, plus Edit (which reads the file
+    #    to diff even though it's in WRITEISH)
+    if (tool in READISH or tool == "Edit") and looks_secret(tool, target):
         deny(f"Blocked by implement-feature guard: reading secrets/.env is not allowed "
              f"(target: {os.path.basename(target) or target[:60]}).")
+
+    # 2b. SECRETS GUARDRAIL — directory-scoped reads (#m-05): a Grep call scoped to a
+    #     directory, or a Bash recursive search (`grep -r`, `rg`, `find`, ...) over one,
+    #     that contains a secret file would surface its contents without the target
+    #     itself ever being a secret path.
+    if tool == "Grep" and _dir_contains_secret(str(ti.get("path") or "")):
+        deny("Blocked by implement-feature guard: this directory contains a secrets/.env "
+             "file — a directory-scoped search would surface its contents.")
+    if tool == "Bash":
+        for d in _bash_secret_dir_targets(target):
+            if _dir_contains_secret(d):
+                deny(f"Blocked by implement-feature guard: recursive search of {d} would "
+                     f"surface a secrets/.env file's contents.")
 
     # 3. ALGORITHM-BLIND — only the test-writer is denied design-internal
     #    (substring match is prefix-tolerant: "03-design-internal.md" still trips it).

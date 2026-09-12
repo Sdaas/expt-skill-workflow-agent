@@ -25,4 +25,4 @@ For each public function / class / endpoint:
   side effects", ordering, determinism).
 
 ## Traceability
-- Which acceptance criteria (from `requirements.md`) this surface satisfies.
+- Which acceptance criteria (from `01-requirements.md`) this surface satisfies.

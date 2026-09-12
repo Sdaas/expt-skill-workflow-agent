@@ -79,7 +79,7 @@ drifts (P46). So:
 
 ## Best-practices the reviews enforce
 Modularity/cohesion · purity / minimal side-effects · clear naming · full type
-annotations · docstrings on public surface · honor the constraints in `requirements.md`.
+annotations · docstrings on public surface · honor the constraints in `01-requirements.md`.
 
 **Error-path tests assert the exception _message contract_, not just the type.** When the
 interface specifies that an exception's message carries diagnostic content (e.g. the

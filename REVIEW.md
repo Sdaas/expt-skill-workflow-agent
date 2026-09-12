@@ -2,6 +2,74 @@
 
 Instructions: see REVIEW-PROMPT.md. Read-only review; findings are append-only.
 
+## Findings tracker & execution order
+
+Ordered by priority (guarantee-breaking Majors first, then platform/doc Majors, then Minors, then
+Nits). `superseded-by`/`downgraded-by` findings are listed but folded into their replacement's fix.
+Action key: **FIX** = safe to fix directly in a small commit; **ISSUE** = file a GitHub issue (needs a
+design decision, is multi-file/analyzer-level work, or is already tracked under Issue #22).
+
+**Progress (2026-09-12):** Batch A (all 16 mechanical/doc + two guarded-tested code fixes: m-05
+secrets-guardrail directory reads, m-06 confinement-path anchoring) is done — 16/30 rows checked
+below; `python3 -m pytest implement-feature-plugin -q` is green (71 passed, incl. new regressions
+for m-05/m-06). N-04 needed no action (already fixed by the repo-rename commit). Remaining: Batch B
+(M-04, M-05 — the two guard Bash-bypass fixes) and Batch C/D (M-03, m-07/m-03, the Issue #22 cluster,
+m-17) are still open, per the execution order below.
+
+| # | ID | Sev | One-line | Action |
+|---|----|-----|----------|--------|
+| 1 | [ ] M-04 | Major (guarantee) | Test-integrity guard has no `Bash` defense — implementer can `sed -i`/heredoc a test file undenied | **FIX** |
+| 2 | [ ] M-05 | Major (guarantee) | Algorithm-blind guard is a literal filename match — `cat handoff/*.md` leaks internal design to test-writer | **FIX** |
+| 3 | [ ] M-08 | Major (platform) | No PreToolUse hook enforces the pinned subagent model at dispatch (Issue #22a) | **ISSUE** (Issue #22) |
+| 4 | [ ] M-06 | Major (platform+doc) | Analyzer only parses guard-audit records; conductor gate records corrupt tool-call counts | **ISSUE** (Issue #22) |
+| 5 | [ ] M-07 | Major (guarantee) | Analyzer report shows transcript model as "pinned model" with no planned-vs-actual / mismatch flag | **ISSUE** (Issue #22) |
+| 6 | [x] M-01 | Major (platform) | Primary command documents itself as bare `/implement-feature`, inconsistent with sibling commands' namespacing | **FIX** |
+| 7 | [ ] M-03 | Major (platform+doc) | SKILL.md prose claims reviewers run at `high` effort; all agent-defs pin `medium` | **ISSUE** (needs a real budget/cost decision) |
+| 8 | [ ] M-02 | Major → downgraded | `01-requirements.md` missing from IMPLEMENT inbox table/prose (superseded by m-04's narrower framing) | fold into #9 |
+| 9 | [x] m-04 | Minor | Same as above, corrected framing: SKILL table/prose (not the agent-def) omits `01-requirements.md` | **FIX** |
+| 10 | [x] m-06 | Minor (guarantee) | Reviewer write-confinement allowlist uses unanchored substrings (`scratchpad`, `/handoff/`) — spoofable path escapes confinement | **FIX** |
+| 11 | [x] m-05 | Minor (guarantee) | Secrets guardrail misses directory-scoped `grep -r`/`Grep` reads and `Edit` targets | **FIX** |
+| 12 | [ ] m-07 | Minor (guarantee/doc) | Guard write-confinement covers `test-reviewer` only; verifier/code-reviewer are nominally read-only but unenforced | **ISSUE** (design-intent decision) |
+| 13 | [ ] m-03 | Minor | Same asymmetry as m-07, from the agent-def side (Unit 3) | fold into #12 |
+| 14 | [x] m-01 | Minor | VERIFY inbox table omits `<code_root>/` (prose has it correctly) | **FIX** |
+| 15 | [ ] m-09 | Minor (guarantee) | Conductor still writes a guessed `model`/`effort` for `[I]` gates (Issue #22c unmet) | **ISSUE** (Issue #22) |
+| 16 | [ ] m-08 | Minor (guarantee) | SKILL.md overclaims the model pin "never deviate[s]" | **ISSUE** (Issue #22, reword alongside M-08) |
+| 17 | [ ] m-10 | Minor | No test exercises the mixed-schema run-log or a model mismatch flag | **ISSUE** (Issue #22, add tests with M-06/M-07 fix) |
+| 18 | [x] m-11 | Minor | Issue #22 references a `design/model-pinning-findings.md` that no longer exists | **FIX** (amend issue text) |
+| 19 | [x] m-12 | Minor | Two reference docs call the requirements handoff `requirements.md` instead of `01-requirements.md` | **FIX** |
+| 20 | [x] m-16 | Minor | Same wrong filename in `docs/user-guide.md` (user-facing) | **FIX** |
+| 21 | [x] m-13 | Minor | CLAUDE.md/developer-guide/tutorial all undercount guard jobs at four (real: five, missing draft-confinement) | **FIX** |
+| 22 | [x] m-14 | Minor | Same three docs omit `NotebookEdit` from the guard's matched-tool enumeration | **FIX** |
+| 23 | [x] m-15 | Minor | developer-guide.md's handoff table duplicates the M-02/m-04/m-01 omissions verbatim | **FIX** (bundle with #9/#14) |
+| 24 | [ ] m-02 | Minor → superseded | Model-plan table blank reviewer effort cells (superseded by M-03) | fold into #7 |
+| 25 | [ ] m-17 | Minor | `REFACTOR-PLAN.md`/`RESUME.md` (588 lines) are tracked at repo root, not gitignored | **FIX** (confirm with user: delete vs gitignore) |
+| 26 | [x] N-01 | Nit | toy-greet-plugin manifest omits `license` field vs implement-feature-plugin's `MIT` | **FIX** |
+| 27 | [x] N-02 | Nit | implementer.md doesn't mention its test-edit denial is guard-enforced (test-reviewer.md does) | **FIX** |
+| 28 | [x] N-03 | Nit | guard.py docstring omits `NotebookEdit` from its own tool list | **FIX** |
+| 29 | [x] N-04 | Nit | DEVCONTAINER.md typo: "wotkflow" → "workflow" | **FIX** |
+| 30 | [x] N-05 | Nit | tutorial.md uses slash-command form for `marketplace add` but CLI form for `install`, inconsistent with its own stated rule | **FIX** |
+
+### Recommended execution order
+
+1. **Batch A — fix now, one small PR, no design decisions needed** (mechanical/doc/small-code, rows
+   9, 11, 14, 18–23, 26–30, plus M-01 and m-01): filename/typo/enumeration corrections, the M-01
+   command-naming fix, and the secrets-guardrail (m-05) and reviewer-confinement-anchoring (m-06)
+   code fixes. These are independently verifiable and low-risk.
+2. **Batch B — fix now, security-sensitive but still self-contained** (M-04, M-05): close the two
+   Bash-bypass holes in `guard.py` (test-integrity, algorithm-blindness) plus their regression tests.
+   These defend the product's two headline "guarantees," so treat as higher urgency than Batch A even
+   though the code change is still local to `guard.py`.
+3. **Batch C — file GitHub issues, don't fix inline**:
+   - One issue for **M-03** (effort medium-vs-high) — it's a real budget/cost tradeoff the user should
+     decide, not something to silently pick a side on.
+   - One issue for **m-07/m-03** (verifier/code-reviewer write-confinement asymmetry) — same reasoning,
+     a deliberate design choice or a scope extension.
+   - Roll **M-06, M-07, M-08, m-08, m-09, m-10, m-11** into the existing **Issue #22** (model
+     integrity) — they're all facets of the same enforcement/detection gap and were already
+     cross-referenced against it during this review; fixing them piecemeal would fragment that issue.
+4. **Batch D — a decision, not a fix**: **m-17** (tracked `REFACTOR-PLAN.md`/`RESUME.md`) — confirm
+   with the user whether the refactor is complete before deleting or gitignoring.
+
 ## Unit status
 | # | Unit                              | Status | Session date |
 |---|-----------------------------------|--------|--------------|
@@ -144,7 +212,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** The product's primary entry-point command documents itself as bare `/implement-feature`. Claude Code plugin commands are namespaced `/<plugin>:<command>`; with plugin name `implement-feature` and command file `implement-feature.md`, the canonical invocation is `/implement-feature:implement-feature`. The repo's *other two* command files use the namespaced form, so the bare form here is internally inconsistent with the author's own documented convention.
 - **Why it matters:** This is the first thing a stranger types. If the bare form does not resolve (or resolves ambiguously), install-to-run breaks at step one — the highest-impact place to be wrong. Even if Claude Code accepts an unambiguous short form, the doc is inconsistent with the two sibling commands and with the toy plugin's stated rule.
 - **Recommendation (advisory):** Standardize on `/implement-feature:implement-feature` in the command title/body (or explicitly document that the short form is accepted and why), matching `analyze-run.md` and `greet.md`. Verify the actual resolved command name in a real session before shipping the docs.
-- **Status:** open
+- **Status:** fixed — command title changed to `/implement-feature:implement-feature`.
 
 ### N-01
 - **Severity:** Nit
@@ -154,7 +222,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** The two sibling plugins in the same marketplace declare metadata inconsistently — one pins a license, the other omits it.
 - **Why it matters:** Cosmetic/metadata drift only; both are still valid manifests. A published marketplace reads more polished when sibling manifests carry the same fields.
 - **Recommendation (advisory):** Add `"license": "MIT"` (or the intended license) to the toy plugin manifest, or drop it from both if intentionally unlicensed.
-- **Status:** open
+- **Status:** fixed — added `"license": "MIT"` to toy-greet-plugin's manifest.
 
 ### M-02
 - **Severity:** Major
@@ -174,7 +242,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** The summary inbox table lists only `01-requirements.md` for VERIFY, omitting `<code_root>/`. The verifier's entire job is to "invoke the **real** public function/flow" (line 471), which is impossible without read access to `<code_root>/`; the prose correctly includes it.
 - **Why it matters:** Low impact (the Gate 6 prose corrects it and is what a reader ultimately follows), but the summary handoff table — the at-a-glance contract — understates what VERIFY needs.
 - **Recommendation (advisory):** Add `<code_root>/` to the VERIFY inbox cell in the table (line 77).
-- **Status:** open
+- **Status:** fixed — `<code_root>/` added to the VERIFY inbox table cell (SKILL.md).
 
 ### m-02
 - **Severity:** Minor
@@ -214,7 +282,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** This finding **downgrades M-02**. M-02 asserted the implementer "never receives the constraints artifact." Unit 3 shows the agent-def — which the spawned agent actually follows — *does* include `01-requirements.md` in its inbox, so the constraints are reachable in practice. The defect is narrower than M-02 stated: SKILL.md's own summary table (76) and prose inbox (445) are internally inconsistent with both `implementer.md:15` and SKILL.md's own Gate-5 step-1 instruction. It is doc-consistency drift, not a functional guarantee gap.
 - **Why it matters:** Low functional risk (the agent-def carries `01`), but the SKILL handoff contract — the at-a-glance source of truth — misstates the implementer's inbox, and a maintainer trusting the table over the def could "fix" the def by removing `01`, reintroducing the real gap.
 - **Recommendation (advisory):** Same as M-02 — add `01-requirements.md` to SKILL.md's IMPLEMENT inbox (table line 76 + prose line 445) so all three sources agree.
-- **Status:** open
+- **Status:** fixed — `01-requirements.md` added to SKILL.md's IMPLEMENT inbox (table + Gate 5 prose) and to developer-guide.md's handoff table (m-15).
 
 ### N-02
 - **Severity:** Nit
@@ -224,7 +292,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** Test-integrity (implementer must not edit tests) is a headline isolation guarantee (SKILL 456-458, invariant "c"), enforced by the guard. The implementer def documents only the soft prose rule and never notes that the guard will *deny* a test edit, while the structurally similar test-reviewer def explains its guard enforcement in full. Documentation depth is asymmetric for the more safety-critical of the two.
 - **Why it matters:** Cosmetic/defense-in-depth-documentation only; enforcement lives in `guard.py` regardless. But a reader of `implementer.md` alone would not learn that the rule is hard-enforced.
 - **Recommendation (advisory):** Add a one-line note to `implementer.md` mirroring the test-reviewer's: edits/writes to any test file are denied by the guard hook (keyed on `agent_type`), not just discouraged.
-- **Status:** open
+- **Status:** fixed — added a note to implementer.md that the test-edit denial is guard-enforced, mirroring test-reviewer.md.
 
 ### M-04
 - **Severity:** Major
@@ -254,7 +322,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** The secrets guardrail is sold as "deny reads of .env / keys / credentials for **ANY** agent" (`guard.py:6`). It is **path-target based**: for non-Bash tools it matches `_is_secret_path(target)`, and for Bash it scans path-like tokens. Two gaps: (1) a **directory-scoped read** surfaces secret *contents* without the target being a secret path — `grep -r AWS_SECRET /repo` (Bash: tokens are `grep`,`-r`,`AWS_SECRET`,`/repo`, none secret) or a `Grep pattern=… path="/repo"` (target resolves to the directory `/repo`) returns matching lines from `/repo/.env` un-denied. (2) The guardrail only fires for `READISH` (`Read/Bash/Grep/Glob`); an `Edit` targeting `.env` (which reads the file to diff) is not covered.
 - **Why it matters:** Lower impact than M-04/M-05 (it needs a broad grep rather than a direct open, and a cooperating agent has no reason to), but the guarantee is stated absolutely ("ANY agent"), and a recursive grep over the repo is a common, innocent-looking action that would exfiltrate `.env` contents into a gate's context.
 - **Recommendation (advisory):** Treat directory/recursive reads conservatively (e.g. deny `grep -r`/`Grep` over a tree that contains a secret file, or strip secret files from results), and include `Edit` in the secret check.
-- **Status:** open
+- **Status:** fixed — secrets guardrail now also fires on `Edit`, and denies a directory-scoped `Grep`/recursive-Bash-search (`grep -r`, `rg`, `ag`, `find`) over a directory containing a secret file. Regression tests added.
 
 ### m-06
 - **Severity:** Minor
@@ -264,7 +332,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** Reviewer write-confinement's allowlist uses **unanchored substring** checks. Any product-tree path that merely *contains* `scratchpad`, `/scratch/`, or `/handoff/` is treated as sanctioned and the write is allowed. So a test-reviewer writing `/repo/src/scratch/ref.py` (`"/scratch/"` matches), `/repo/scratchpad_util.py` (`"scratchpad"` matches), or `/repo/src/handoff/impl.py` (`"/handoff/"` matches) **escapes confinement** and mutates the product tree — the very thing the guard exists to prevent ("build no reference implementation").
 - **Why it matters:** The confinement guarantee is defeatable by path naming. It requires the reviewer to choose such a path, so impact is bounded, but the allowlist should key on the *actual* artifact dir / a real temp root, not any occurrence of the token anywhere in the path.
 - **Recommendation (advisory):** Anchor the allowlist: match the run's real `<artifact_dir>/handoff/` (resolved absolute prefix) and a real temp root (`/tmp/`, `/private/tmp/`, `/var/folders/` as path prefixes; `scratchpad`/`scratch` only as a leading path segment under a temp root), not as free substrings.
-- **Status:** open
+- **Status:** fixed — scratch-path check anchored to real temp roots (`/tmp/`, `/private/tmp/`, `/var/folders/`); handoff-path check anchored to the run's actual handoff dir (derived from `run-log.jsonl`'s location) instead of a free `/handoff/` substring. Regression tests added for both spoofed-path bypasses.
 
 ### m-07
 - **Severity:** Minor
@@ -284,7 +352,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** The guard's own docstring omits `NotebookEdit` from the tools it acts on, though the matcher registers it and `WRITEISH` (test-integrity + reviewer-confinement) actually covers it. Cosmetic self-doc drift inside the code.
 - **Why it matters:** None functionally; a maintainer reading the docstring underestimates coverage. (Same NotebookEdit omission appears in `CLAUDE.md` / SKILL enumerations — a Unit-7 doc item.)
 - **Recommendation (advisory):** Add `NotebookEdit` to the guard docstring's tool list.
-- **Status:** open
+- **Status:** fixed — added `NotebookEdit` to guard.py's own docstring tool list.
 
 ### M-06
 - **Severity:** Major
@@ -354,7 +422,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** An open, `v1`-labeled issue's acceptance criteria and references point at a design doc that no longer exists anywhere in the tree, so that criterion is unsatisfiable as written and the reference is dangling.
 - **Why it matters:** Low direct product impact (it is issue/tracker hygiene, not shipped behavior), but it means the model-integrity work item can never be "closed to its own acceptance criteria," and anyone following the issue's references hits a missing file. Flagged because the user asked to verify each Issue #22 item against the current branch; also a candidate Unit-7 tracked-scaffolding/stale-reference synthesis item.
 - **Recommendation (advisory):** Either restore/relocate the findings doc (e.g. fold verified reality into `docs/developer-guide.md` and update the issue to point there), or amend Issue #22 to drop the dead reference. Decide alongside M-07/M-08 since that is where the "verified reality" would be re-established.
-- **Status:** open
+- **Status:** fixed — Issue #22 amended to drop the dangling `design/model-pinning-findings.md` reference; acceptance criterion now points at this issue + `docs/developer-guide.md`.
 
 ### m-12
 - **Severity:** Minor
@@ -364,7 +432,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** Both reference the requirements handoff file as `requirements.md`. The canonical filename used everywhere else in the repo — the SKILL.md handoff table (line 58), every gate's inbox prose (lines 74-78, 335, 381, 413, 449, 468, 493, 499), and the requirements template's own self-description (`requirements-template.md:3`, "Canonical handoff file: **`01-requirements.md`**") — is `01-requirements.md`. No file named bare `requirements.md` exists or is ever produced by the workflow.
 - **Why it matters:** Low impact — the surrounding SKILL.md prose and agent-def inboxes all use the correct numbered name, so a gate is unlikely to actually go looking for a nonexistent `requirements.md`. But `design-interface-template.md`'s occurrence is inside the **Traceability** section boilerplate, which is carried verbatim into the real, promoted `02-design-interface.md` handoff file for every feature unless the conductor happens to edit that parenthetical — so the wrong filename can ship into an actual artifact repeatedly, not just live in a reference doc.
 - **Recommendation (advisory):** Change both occurrences to `01-requirements.md` for consistency with every other reference to this file in the repo.
-- **Status:** open
+- **Status:** fixed — both occurrences changed to `01-requirements.md`.
 
 ### m-13
 - **Severity:** Minor
@@ -374,7 +442,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** Per Unit 4 (`guard.py:222`, tested at `test_guard.py:71`), the guard actually enforces a **fifth** denial — draft-confinement: any subagent is denied reading under `handoff/draft/`, which `SKILL.md:112-123` does list. All three top-level/developer-facing docs independently omit it, describing only four jobs.
 - **Why it matters:** Confirmed real behavior (not a false guarantee — Unit 4 resolved that scare), but three separate canonical entry points into the architecture (the project's own CLAUDE.md, the Developer Guide, and the Tutorial) all undercount the guard's actual job list identically, suggesting the four-job phrasing was copied forward rather than each doc independently checked against `guard.py`. A developer reading any one of these and then extending the guard would not know draft-confinement exists as a precedent to preserve.
 - **Recommendation (advisory):** Add draft-confinement as job (e) in all three locations, matching `SKILL.md`'s five-item list.
-- **Status:** open
+- **Status:** fixed — added draft-confinement as the fifth guard job in CLAUDE.md, developer-guide.md, and tutorial.md.
 
 ### m-14
 - **Severity:** Minor
@@ -384,7 +452,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** `hooks.json:5`'s matcher includes `NotebookEdit`, and Unit 4 confirmed `guard.py`'s `WRITEISH` set (`guard.py:103`) covers it for test-integrity and reviewer-confinement — real coverage, just never named in prose. Same class of omission as `guard.py`'s own docstring (N-03), now shown to be a repo-wide pattern, not a one-off.
 - **Why it matters:** Purely descriptive gap — enforcement is unaffected — but a reader relying on any of these three docs to know the guard's matched-tool surface would list one tool short everywhere they look.
 - **Recommendation (advisory):** Add `NotebookEdit` to all three enumerations (and `guard.py`'s docstring per N-03) in one pass.
-- **Status:** open
+- **Status:** fixed — added `NotebookEdit` to the tool enumeration in CLAUDE.md, developer-guide.md, and tutorial.md.
 
 ### m-15
 - **Severity:** Minor
@@ -394,7 +462,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** This is the same table structure and the same two omissions found in `SKILL.md` (M-02/m-04 for the IMPLEMENT row's missing `01-requirements.md`; m-01 for the VERIFY row's missing `<code_root>/`), now shown to be duplicated verbatim in the Developer Guide's own summary of the handoff contract — a third and fourth occurrence of each respective omission (SKILL table, SKILL prose, dev-guide table).
 - **Why it matters:** Confirms the M-02/m-04/m-01 drift is not confined to `SKILL.md` — it was copied into the Developer Guide's architecture summary too, which a developer is at least as likely to trust as the canonical `SKILL.md` gate prose (which does get `<code_root>/` right for VERIFY, per m-01's own text). Low functional risk (the agent-defs are correct per Unit 3), but it means **any** fix to M-02/m-04/m-01 must also touch this table or the drift will look "fixed" in one doc and persist in another.
 - **Recommendation (advisory):** Fix alongside M-02/m-04/m-01: add `01-requirements.md` to the IMPLEMENT row and `<code_root>/` to the VERIFY row of `developer-guide.md`'s handoff table.
-- **Status:** open
+- **Status:** fixed — alongside m-04/m-01, added `01-requirements.md` to the IMPLEMENT row and `<code_root>/` to the VERIFY row of developer-guide.md's handoff table.
 
 ### m-16
 - **Severity:** Minor
@@ -404,7 +472,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** Same wrong-filename class as m-12 (`quality-standards.md:82`, `design-interface-template.md:28`) — the canonical handoff filename used everywhere else, including this same table's own later gates and `requirements-template.md`'s self-description, is `01-requirements.md`. No file named bare `requirements.md` is ever produced. This is now a **fourth** occurrence of the same bug across the repo.
 - **Why it matters:** Unlike m-12's occurrences (an internal reference doc and boilerplate carried into an artifact), this one is in the **User Guide** — the doc a real, non-repo-familiar stranger reads to know what to expect. A user grepping their `.implement-feature/<run>/handoff/` for `requirements.md` per this doc would find nothing by that name.
 - **Recommendation (advisory):** Change to `01-requirements.md` here too; consider a single repo-wide grep-and-fix pass for `requirements.md` (bare) given four independent occurrences (m-12 ×2, this one, and any others a full grep would find) all trace to the same drift.
-- **Status:** open
+- **Status:** fixed — changed to `01-requirements.md`.
 
 ### N-04
 - **Severity:** Nit
@@ -414,7 +482,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** Typo — "wotkflow" for "workflow." The actual repo directory name (confirmed via `git remote -v`: `Sdaas/expt-skill-workflow-agent`) is `expt-skill-workflow-agent`.
 - **Why it matters:** Purely cosmetic; a reader would still find the repo by context.
 - **Recommendation (advisory):** Fix the typo.
-- **Status:** open
+- **Status:** resolved — the repo-rename pass (`Update stale repo-name references after rename to sdlc-lite`) already fixed this line to `~/dev/sdlc-lite`; no separate action needed.
 
 ### N-05
 - **Severity:** Nit
@@ -424,7 +492,7 @@ checks) — which is why M-06 is Major (count/data corruption), not Critical.
 - **Claim vs. reality:** The tutorial's runnable example uses the slash-command one-liner for `marketplace add` but then switches to the CLI form for `install` on the very next line (`claude plugin install toy-greet@daas-plugins`) — while its own stated rule and the User Guide's practice both use the CLI form throughout. It's not demonstrably wrong (the warning is scoped to `install`), but the example is inconsistent with the more conservative pattern used everywhere else in the repo.
 - **Why it matters:** Low impact — a reader following the tutorial's exact commands would likely succeed — but a reader who generalizes "the CLI form is safer" from §5 and then sees the tutorial use the slash form for `marketplace add` a few sections later may reasonably wonder if that one is exempt for a real reason (it isn't stated either way).
 - **Recommendation (advisory):** Use the CLI form (`claude plugin marketplace add /workspaces/expt-skill-workflow-agent`) in the tutorial example too, for consistency with §5's own advice and the User Guide.
-- **Status:** open
+- **Status:** fixed — tutorial.md now uses the CLI form for `marketplace add`, consistent with its own stated rule and the User Guide.
 
 ### m-17
 - **Severity:** Minor

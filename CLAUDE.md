@@ -38,12 +38,13 @@ Core invariants (also in `SKILL.md` → Rules): design & every review use a high
 ### The guard hook 
 Isolation is enforced, not just requested.
 
-`implement-feature-plugin/hooks/hooks.json` registers a **PreToolUse** hook (`hooks/scripts/guard.py`) that fires for the conductor **and every subagent** and keys on `agent_type`. On every Read/Bash/Grep/Glob/Edit/Write it does the following 
+`implement-feature-plugin/hooks/hooks.json` registers a **PreToolUse** hook (`hooks/scripts/guard.py`) that fires for the conductor **and every subagent** and keys on `agent_type`. On every Read/Bash/Grep/Glob/Edit/Write/NotebookEdit it does the following 
 
 - **audits** — appends a JSONL line per tool call; 
 - **secrets guardrail** — denies reading `.env`/keys/credentials for any agent; -
 - **algorithm-blind** — denies the `test-writer` reading the internal design;
 - **test-integrity** — denies the `implementer` editing/writing any test file; plus reviewer write-confinement (writes only to its outbox + scratch).
+- **draft-confinement** — denies any subagent reading under `handoff/draft/`.
 
 A **plugin** hook (not a project-settings hook) was required for it to fire for subagents in headless.
 

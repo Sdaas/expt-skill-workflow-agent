@@ -148,8 +148,8 @@ devcontainer exec --workspace-folder . claude   # jump into Claude Code inside
 
 Then, inside the container's Claude session:
 
-```
-/plugin marketplace add /workspaces/sdlc-lite
+```bash
+claude plugin marketplace add /workspaces/sdlc-lite   # CLI form is deterministic
 ```
 ```bash
 claude plugin install toy-greet@daas-plugins   # CLI form is deterministic
@@ -235,12 +235,14 @@ were *wrong*:
 ### How `implement-feature` enforces isolation (the guard hook)
 
 A single **plugin-shipped PreToolUse hook** (`hooks/hooks.json` → `hooks/scripts/guard.py`) does the
-cross-cutting work on every `Read`/`Bash`/`Grep`/`Glob`/`Edit`/`Write`, from the conductor *and* every
-subagent. It keys on the `agent_type` on stdin and: (a) **audits** every call to a run-log; (b) denies
-**secrets** for all agents; (c) denies the **test-writer** reading the internal design (algorithm-blind);
-(d) denies the **implementer** editing any test file (it must pass the tests, not change them). A `deny`
-+ exit code 2 hard-blocks the call. This is **defense-in-depth** with the agents' own role instructions
-— in testing, the test-writer refused on its own *before* the hook even fired.
+cross-cutting work on every `Read`/`Bash`/`Grep`/`Glob`/`Edit`/`Write`/`NotebookEdit`, from the
+conductor *and* every subagent. It keys on the `agent_type` on stdin and: (a) **audits** every call to
+a run-log; (b) denies **secrets** for all agents; (c) denies the **test-writer** reading the internal
+design (algorithm-blind); (d) denies **any subagent** reading under `handoff/draft/`
+(draft-confinement); (e) denies the **implementer** editing any test file (it must pass the tests, not
+change them). A `deny` + exit code 2 hard-blocks the call. This is **defense-in-depth** with the
+agents' own role instructions — in testing, the test-writer refused on its own *before* the hook even
+fired.
 
 ### Proving it: measurement, not orchestration
 

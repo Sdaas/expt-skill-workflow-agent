@@ -6,5 +6,6 @@
     "name": "Soumendra Daas",
     "email": "soumendra.daas@gmail.com"
   },
+  "license": "MIT",
   "keywords": ["tutorial", "workflow", "toy"]
 }

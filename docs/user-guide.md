@@ -144,7 +144,7 @@ unattended.
 | Gate | What happens | Your part |
 |---|---|---|
 | **0 · Classify** | Preflight, detects your code/test layout, proposes the per-gate model plan and the branch. | **Confirm** layout, model plan, branch. |
-| **1 · Interview** | Grills you to full clarity — it first proposes a *minimal* scope and an out-of-scope list, then asks numbered questions with a recommended answer each. Writes a `requirements.md` draft for you to read. | **Answer questions; review the real draft; reply APPROVED.** |
+| **1 · Interview** | Grills you to full clarity — it first proposes a *minimal* scope and an out-of-scope list, then asks numbered questions with a recommended answer each. Writes a `01-requirements.md` draft for you to read. | **Answer questions; review the real draft; reply APPROVED.** |
 | **2 · Design** | Writes three files: the public-contract interface, the internal design (algorithm + rejected alternatives), and a test plan with coverage + mutation thresholds. | **Review the real drafts; reply APPROVED.** |
 | **3 · Write tests** | An *algorithm-blind* subagent writes failing tests from the contract only. | — (unattended) |
 | **4 · Review tests** | An independent critic checks the tests encode the requirements and aren't tautological — before any code exists. | — (unattended) |

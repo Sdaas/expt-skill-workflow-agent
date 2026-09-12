@@ -25,7 +25,9 @@ Handoff files live under `<artifact_dir>/handoff/`.
    - `python -m pytest -q` — all tests pass.
    - `ruff check .` clean (and `ruff format --check .`).
    - `mypy <code_root>/` — no type errors.
-3. Refactor while keeping green. Do not weaken or edit tests to pass.
+3. Refactor while keeping green. Do not weaken or edit tests to pass. This is not just a role
+   instruction: the **guard hook denies** any Write/Edit to a test file for this agent, keyed on
+   `agent_type` — it is hard-enforced, not just discouraged.
 
 Coverage and mutation are the CODE-REVIEW gate's job, not yours — but write code that
 would survive them.
