@@ -27,7 +27,7 @@
   // ~/.claude to a Docker named volume (lives outside the disposable container,
   // and entirely separate from the Mac's ~/.claude).
   "mounts": [
-    "source=expt-skill-workflow-claude,target=/home/vscode/.claude,type=volume"
+    "source=sdlc-lite-claude,target=/home/vscode/.claude,type=volume"
   ],
 
   // In a Dev Container the toolchain should be pinned + reproducible (bump the

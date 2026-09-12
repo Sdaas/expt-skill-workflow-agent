@@ -410,7 +410,7 @@ anyone changing the plugin.
 
 **The plugin is never installed into the developer's global `~/.claude`.** It's installed and run
 inside a **dev container** with its own isolated `~/.claude` (login persisted in the named volume
-`expt-skill-workflow-claude`) and the pinned Python toolchain. The container is both the blast-radius
+`sdlc-lite-claude`) and the pinned Python toolchain. The container is both the blast-radius
 boundary (the product *writes and commits code*) and the environment where Gate 0's preflight passes.
 Full lifecycle — build, shell in, teardown levels, VS Code palette commands, the container's Claude UX
 provisioning — is in **[DEVCONTAINER.md](../DEVCONTAINER.md)**.
@@ -455,7 +455,7 @@ had no local copy to fall back to):
   spot-checked for completeness: `skills/implement-feature/SKILL.md` (615 lines, 53 `Gate`
   mentions) and all five `agents/*.md` files were present and intact.
 - The test marketplace/plugin were removed afterward so they don't linger in the persisted
-  `expt-skill-workflow-claude` login volume.
+  `sdlc-lite-claude` login volume.
 
 ### Fault injection (the un-mocked resiliency check)
 

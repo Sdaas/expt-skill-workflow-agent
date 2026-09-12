@@ -57,7 +57,7 @@ Gate 0 preflight hard-fails if any tool is missing. **A real user must install t
 
 For development, the plugin is **never** installed into the Mac's global `~/.claude`.** For 
 our testing it is installed and run inside a **dev container** with its own isolated `~/.claude` (login persisted in the named volume
-`expt-skill-workflow-claude`), which also has the pinned Python toolchain. Full lifecycle in
+`sdlc-lite-claude`), which also has the pinned Python toolchain. Full lifecycle in
 `DEVCONTAINER.md`. 
 
 A *real end user* installs on their own machine — that path is the User Guide's job.

@@ -5,7 +5,7 @@ code-writing `/implement-feature` product) inside an isolated Claude Code, **wit
 touching your Mac's `~/.claude`**. Config lives in `.devcontainer/` at the repo root.
 
 - **Your code** always lives on the Mac (bind-mounted into the container) — never at risk.
-- **Claude Code's login** lives in a Docker **named volume** `expt-skill-workflow-claude`
+- **Claude Code's login** lives in a Docker **named volume** `sdlc-lite-claude`
   (persists across rebuilds; separate from the Mac login).
 - **The container itself** is disposable — remove and recreate freely.
 
@@ -43,7 +43,7 @@ docker ps -a --filter "label=devcontainer.local_folder=$(pwd)"
 ```bash
 docker stop <container>                       # 1. stop (keep container, fs, volume)
 docker rm -f <container>                       # 2. remove container (code + login untouched)
-docker volume rm expt-skill-workflow-claude    # 3. drop the Claude login (container must be stopped/removed)
+docker volume rm sdlc-lite-claude    # 3. drop the Claude login (container must be stopped/removed)
 docker images && docker rmi <image>            # 4. drop the build cache (next up rebuilds from scratch)
 ```
 Full walk-away: run 2 + 3 (+ optional 4). Blunt option: **Quit Docker Desktop** — stops everything
@@ -105,7 +105,7 @@ extension (`ms-vscode-remote.remote-containers`) must be installed.
 | **Dev Containers: Show Container Log** | See the build/startup log (debug feature or postCreate failures). |
 | **Dev Containers: Open Container Configuration File** | Jump to this repo's `devcontainer.json`. |
 | **Dev Containers: Attach to Running Container** | Attach a window to a container you started via the CLI. |
-| **Dev Containers: Open Named Volume in New Window** | Inspect the `expt-skill-workflow-claude` volume contents. |
+| **Dev Containers: Open Named Volume in New Window** | Inspect the `sdlc-lite-claude` volume contents. |
 
 ### Everyday, once inside
 | Command | Use |
