@@ -438,6 +438,24 @@ a **fresh container Claude session restart** (SKILL/agents load at startup; the 
 tool call). Note this differs from a *real end-user* install, which hits the cache path — the User
 Guide documents that distinction.
 
+### Install-from-GitHub verification (real user path, checked)
+
+The **real end-user path** — `claude plugin marketplace add Sdaas/sdlc-lite` +
+`claude plugin install implement-feature@daas-plugins` — was verified for real on 2026-09-12,
+inside the dev container but from `/tmp` (outside the bind-mounted workspace, so `marketplace add`
+had no local copy to fall back to):
+
+- `claude plugin marketplace add Sdaas/sdlc-lite` logged `cloning via HTTPS:
+  https://github.com/Sdaas/sdlc-lite.git` and `Clone complete, validating marketplace…` — a genuine
+  network clone, not the directory source.
+- `claude plugin install implement-feature@daas-plugins` succeeded; `claude plugin list` showed it
+  `✔ enabled`.
+- The installed cache (`~/.claude/plugins/cache/daas-plugins/implement-feature/0.1.0/`) was
+  spot-checked for completeness: `skills/implement-feature/SKILL.md` (615 lines, 53 `Gate`
+  mentions) and all five `agents/*.md` files were present and intact.
+- The test marketplace/plugin were removed afterward so they don't linger in the persisted
+  `expt-skill-workflow-claude` login volume.
+
 ### Fault injection (the un-mocked resiliency check)
 
 For a feature with a network boundary, the VERIFY gate and the resiliency review dimension must be
